@@ -1,0 +1,34 @@
+{
+  "name": "vrbovsko",
+  "version": "1.0.0",
+  "description": "Website za Inicijativu za Održivi Razvoj Naselja Vrbovsko",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "vrbovsko",
+    "održivi razvoj",
+    "zajednica",
+    "priroda"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1"
+  }
+}
