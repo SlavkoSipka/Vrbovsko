@@ -59,8 +59,6 @@ export default function Footer() {
             <div className="footer-legal">
               <span>Powered by</span>
               <a href="/aisajt" target="_blank" rel="noopener">AiSajt.com</a>
-              <span className="footer-sep">|</span>
-              <Link to="/login" className="footer-admin-link">Login</Link>
             </div>
           </div>
         </div>

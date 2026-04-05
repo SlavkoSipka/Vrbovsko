@@ -88,11 +88,6 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
-            <li role="none">
-              <Link to="/login" className="nav-link nav-admin-btn" role="menuitem" onClick={closeMenu}>
-                Admin
-              </Link>
-            </li>
           </ul>
         </div>
       </div>

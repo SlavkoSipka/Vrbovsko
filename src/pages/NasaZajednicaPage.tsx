@@ -227,6 +227,78 @@ export default function NasaZajednicaPage() {
           </div>
         </section>
 
+        {/* ── KANALI UČEŠĆA — velika prominentna sekcija ── */}
+        <section className="ku-section" aria-labelledby="ku-heading">
+          <div className="container">
+
+            <div className="ku-header">
+              <p className="onama-section-label">Vaš Glas</p>
+              <h2 className="ku-title" id="ku-heading">
+                Kanali Učešća
+              </h2>
+              <p className="ku-subtitle">
+                Izaberite kako želite da doprinesete — razgovorom, glasanjem, predlogom ili prijavom.
+              </p>
+            </div>
+
+            <div className="ku-grid">
+
+              <Link to="/nasa-zajednica/forum" className="ku-card ku-card--forum">
+                <div className="ku-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  </svg>
+                </div>
+                <div className="ku-card-body">
+                  <h3 className="ku-card-title">Forum</h3>
+                  <p className="ku-card-desc">Otvorena rasprava o temama koje su bitne za naše naselje. Vaš komentar se čuje.</p>
+                </div>
+                <span className="ku-card-cta">Uđite u Forum &rarr;</span>
+              </Link>
+
+              <Link to="/nasa-zajednica/ankete" className="ku-card ku-card--ankete">
+                <div className="ku-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <div className="ku-card-body">
+                  <h3 className="ku-card-title">Ankete</h3>
+                  <p className="ku-card-desc">Recite nam koji su prioriteti revitalizacije po vašem mišljenju. Svaki glas menja odluke.</p>
+                </div>
+                <span className="ku-card-cta">Glasajte &rarr;</span>
+              </Link>
+
+              <Link to="/nasa-zajednica/zid/predlozi" className="ku-card ku-card--predlozi">
+                <div className="ku-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="ku-card-body">
+                  <h3 className="ku-card-title">Predlozi Ideja</h3>
+                  <p className="ku-card-desc">Imate ideju za poboljšanje? Podelite je sa zajednicom i pokrenite promenu.</p>
+                </div>
+                <span className="ku-card-cta">Predložite &rarr;</span>
+              </Link>
+
+              <Link to="/nasa-zajednica/zid/problemi" className="ku-card ku-card--problemi">
+                <div className="ku-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="ku-card-body">
+                  <h3 className="ku-card-title">Prijava Problema</h3>
+                  <p className="ku-card-desc">Prijavite infrastrukturne, ekološke ili komunalne probleme. Dokumentujemo i pratimo.</p>
+                </div>
+                <span className="ku-card-cta">Prijavite &rarr;</span>
+              </Link>
+
+            </div>
+          </div>
+        </section>
+
         {/* Mapa Naselja */}
         <section className="mn-section" aria-labelledby="mn-heading">
           <div className="container">
