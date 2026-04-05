@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase, type Initiative, type Project, type ProjectDocument, type InitiativeDocument } from '../lib/supabase'
-
-type AnyDoc = ProjectDocument | InitiativeDocument
+import { supabase, type Initiative, type Project, type Activity, type ProjectPhase } from '../lib/supabase'
 
 export default function InicijativaPage() {
   const { type, slug } = useParams<{ type: string; slug: string }>()
   const isProject = type === 'projekat'
-  const [item, setItem] = useState<Initiative | Project | null>(null)
-  const [docs, setDocs] = useState<AnyDoc[]>([])
+  const [item, setItem] = useState<(Initiative | Project) & { goals?: string; detailed_description?: string } | null>(null)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [phases, setPhases] = useState<ProjectPhase[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,14 +25,20 @@ export default function InicijativaPage() {
       if (data) document.title = `${data.title} | Vrbovski`
 
       if (data) {
-        const docTable = isProject ? 'project_documents' : 'initiative_documents'
-        const fkCol = isProject ? 'project_id' : 'initiative_id'
-        const { data: docsData } = await supabase
-          .from(docTable)
+        const parentType = isProject ? 'project' : 'initiative'
+
+        const { data: acts } = await supabase.from('project_activities')
           .select('*')
-          .eq(fkCol, data.id)
-          .order('sort_order')
-        setDocs(docsData ?? [])
+          .eq('parent_type', parentType)
+          .eq('parent_id', data.id)
+          .eq('visible', true)
+          .order('activity_date', { ascending: false })
+        setActivities(acts ?? [])
+
+        if (isProject) {
+          const { data: phData } = await supabase.from('project_phases').select('*').eq('project_id', data.id).order('sort_order')
+          setPhases(phData ?? [])
+        }
       }
 
       setLoading(false)
@@ -45,17 +50,8 @@ export default function InicijativaPage() {
     return (
       <>
         <header className="hero hero-page" role="banner">
-          <div className="hero-image">
-            <img src="/mapa-vrbovsko.png" alt="" loading="eager" />
-            <div className="hero-overlay" aria-hidden="true"></div>
-          </div>
-          <div className="hero-content">
-            <div className="container">
-              <div className="hero-page-text">
-                <h1 className="hero-page-title">Učitavanje...</h1>
-              </div>
-            </div>
-          </div>
+          <div className="hero-image"><img src="/mapa-vrbovsko.png" alt="" loading="eager" /><div className="hero-overlay" aria-hidden="true" /></div>
+          <div className="hero-content"><div className="container"><div className="hero-page-text"><h1 className="hero-page-title">Učitavanje...</h1></div></div></div>
         </header>
         <main><div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>Učitavanje...</div></main>
       </>
@@ -66,22 +62,13 @@ export default function InicijativaPage() {
     return (
       <>
         <header className="hero hero-page" role="banner">
-          <div className="hero-image">
-            <img src="/mapa-vrbovsko.png" alt="" loading="eager" />
-            <div className="hero-overlay" aria-hidden="true"></div>
-          </div>
-          <div className="hero-content">
-            <div className="container">
-              <div className="hero-page-text">
-                <h1 className="hero-page-title">Stranica nije pronađena</h1>
-              </div>
-            </div>
-          </div>
+          <div className="hero-image"><img src="/mapa-vrbovsko.png" alt="" loading="eager" /><div className="hero-overlay" aria-hidden="true" /></div>
+          <div className="hero-content"><div className="container"><div className="hero-page-text"><h1 className="hero-page-title">Stranica nije pronađena</h1></div></div></div>
         </header>
         <main>
           <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-            <p>{isProject ? 'Projekat' : 'Inicijativa'} nije pronađen/a ili nije javno dostupan/a.</p>
-            <Link to="/projekti-i-aktivnosti" className="pi-back-link">&larr; Nazad na Projekti i Aktivnosti</Link>
+            <p>{isProject ? 'Projekat' : 'Inicijativa'} nije pronađen/a.</p>
+            <Link to="/projekti-i-aktivnosti" className="pi-back-link">&larr; Nazad</Link>
           </div>
         </main>
       </>
@@ -91,11 +78,13 @@ export default function InicijativaPage() {
   const statusLabel = item.status === 'aktivan' ? 'Aktivan' : item.status === 'zavrsen' ? 'Završen' : 'Planiran'
   const statusClass = item.status === 'aktivan' ? 'pi-tag--active' : item.status === 'zavrsen' ? 'pi-tag--done' : 'pi-tag--planned'
 
-  function docIcon(ft: string) {
-    if (ft === 'pdf') return '📄'
-    if (ft === 'file') return '📎'
-    return '🔗'
-  }
+  const actStatusLabel = (s: string) => s === 'planirano' ? 'Planirano' : s === 'u_toku' ? 'U toku' : 'Završeno'
+  const actStatusClass = (s: string) => s === 'planirano' ? 'tl-status--planned' : s === 'u_toku' ? 'tl-status--active' : 'tl-status--done'
+
+  const phaseStatusLabel = (s: string) => s === 'planirano' ? 'Planirano' : s === 'u_toku' ? 'U toku' : 'Završeno'
+  const phaseStatusClass = (s: string) => s === 'planirano' ? 'phase-status--planned' : s === 'u_toku' ? 'phase-status--active' : 'phase-status--done'
+
+  const goalsArr = item.goals ? item.goals.split('\n').filter(g => g.trim()) : []
 
   return (
     <>
@@ -106,20 +95,17 @@ export default function InicijativaPage() {
           ) : (
             <img src="/mapa-vrbovsko.png" alt={item.title} loading="eager" />
           )}
-          <div className="hero-overlay" aria-hidden="true"></div>
+          <div className="hero-overlay" aria-hidden="true" />
         </div>
         <div className="hero-content">
           <div className="container">
             <div className="hero-page-text">
-              <h1 className="hero-page-title">
-                {item.title}
-              </h1>
+              <h1 className="hero-page-title">{item.title}</h1>
             </div>
           </div>
         </div>
         <a href="#inic-content" className="scroll-indicator" aria-label="Skroluj do sadržaja">
-          <span>Skroluj</span>
-          <div className="scroll-arrow" aria-hidden="true"></div>
+          <span>Skroluj</span><div className="scroll-arrow" aria-hidden="true" />
         </a>
       </header>
 
@@ -129,12 +115,14 @@ export default function InicijativaPage() {
 
             <Link to="/projekti-i-aktivnosti" className="inic-back">&larr; Sve inicijative i projekti</Link>
 
+            {/* 1. Osnovne informacije */}
             <div className="inic-meta">
               <span className={`pi-tag ${statusClass}`}>{statusLabel}</span>
               {item.date_text && <time className="inic-date">{item.date_text}</time>}
               <span className="inic-type">{isProject ? 'Projekat' : 'Inicijativa'}</span>
             </div>
 
+            {/* 2. Opis */}
             <div className="inic-content-wrap">
               <div className="inic-body">
                 {item.description.split('\n').map((line, i) => {
@@ -146,7 +134,6 @@ export default function InicijativaPage() {
                   return <p key={i}>{trimmed}</p>
                 })}
               </div>
-
               {item.cover_image && (
                 <aside className="inic-sidebar">
                   <figure className="inic-figure">
@@ -156,12 +143,45 @@ export default function InicijativaPage() {
               )}
             </div>
 
+            {/* Detaljan opis (ako postoji) */}
+            {item.detailed_description && (
+              <section className="inic-section">
+                <h2 className="inic-section-title">Detaljan opis</h2>
+                <div className="inic-body">
+                  {item.detailed_description.split('\n').map((line, i) => {
+                    const trimmed = line.trim()
+                    if (!trimmed) return <br key={i} />
+                    return <p key={i}>{trimmed}</p>
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* 3. Ciljevi */}
+            {goalsArr.length > 0 && (
+              <section className="inic-section">
+                <h2 className="inic-section-title">Ciljevi {isProject ? 'projekta' : 'inicijative'}</h2>
+                <ul className="inic-goals-list">
+                  {goalsArr.map((goal, i) => (
+                    <li key={i} className="inic-goal-item">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="inic-goal-icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{goal}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Partner / Donator */}
             {'partner' in item && item.partner && (
               <div className="inic-partner">
                 <strong>Partner / Donator:</strong> {item.partner}
               </div>
             )}
 
+            {/* Progress bar */}
             {'progress_pct' in item && item.progress_pct > 0 && (
               <div className="inic-progress-wrap">
                 <div className="inic-progress-label">
@@ -174,23 +194,92 @@ export default function InicijativaPage() {
               </div>
             )}
 
-            {docs.length > 0 && (
-              <div className="inic-docs">
-                <h3 className="inic-docs-title">Dokumenti i materijali</h3>
-                <div className="inic-docs-grid">
-                  {docs.map(doc => (
-                    <a key={doc.id} href={doc.url} target="_blank" rel="noopener noreferrer" className="inic-doc-card">
-                      <span className="inic-doc-icon">{docIcon(doc.file_type)}</span>
-                      <span className="inic-doc-info">
-                        <span className="inic-doc-name">{doc.title}</span>
-                        <span className="inic-doc-type">{doc.file_type === 'pdf' ? 'PDF dokument' : doc.file_type === 'file' ? 'Fajl' : 'Link'}</span>
-                      </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="inic-doc-arrow"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                    </a>
+            {/* 4. Faze projekta (samo za projekte) */}
+            {isProject && phases.length > 0 && (
+              <section className="inic-section">
+                <h2 className="inic-section-title">Faze projekta</h2>
+                <div className="phases-grid">
+                  {phases.map((phase, idx) => (
+                    <div key={phase.id} className="phase-card">
+                      <div className="phase-card-header">
+                        <span className="phase-number">Faza {idx + 1}</span>
+                        <span className={`phase-status ${phaseStatusClass(phase.status)}`}>
+                          {phaseStatusLabel(phase.status)}
+                        </span>
+                      </div>
+                      <h3 className="phase-card-title">{phase.title}</h3>
+                      {phase.description && <p className="phase-card-desc">{phase.description}</p>}
+                      {phase.cover_image && (
+                        <img src={phase.cover_image} alt={phase.title} className="phase-card-img" loading="lazy" />
+                      )}
+                    </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
+
+            {/* 5. TIMELINE AKTIVNOSTI — uvek vidljiv */}
+            <section className="inic-section" id="timeline">
+              <h2 className="inic-section-title">
+                Aktivnosti
+                {activities.length > 0 && <span className="tl-count">({activities.length})</span>}
+              </h2>
+
+              {activities.length > 0 && (
+                <div className="tl-legend">
+                  <span className="tl-legend-item tl-status--planned">Planirano</span>
+                  <span className="tl-legend-item tl-status--active">U toku</span>
+                  <span className="tl-legend-item tl-status--done">Završeno</span>
+                </div>
+              )}
+
+              {activities.length > 0 ? (
+                <div className="timeline">
+                  {activities.map((act, idx) => {
+                    const dateFormatted = new Date(act.activity_date).toLocaleDateString('sr-Latn', { day: 'numeric', month: 'long', year: 'numeric' })
+                    return (
+                      <div key={act.id} className="tl-item">
+                        <div className="tl-date-col">
+                          <time className="tl-date">{dateFormatted}</time>
+                        </div>
+                        <div className="tl-dot-col">
+                          <div className={`tl-dot ${actStatusClass(act.status)}`} />
+                          {idx < activities.length - 1 && <div className="tl-line" />}
+                        </div>
+                        <div className="tl-content-col">
+                          <Link
+                            to={`/projekti-i-aktivnosti/${type}/${slug}/aktivnost/${act.slug}`}
+                            className={`tl-card ${actStatusClass(act.status)}`}
+                          >
+                            <div className="tl-card-top">
+                              <span className={`tl-card-status ${actStatusClass(act.status)}`}>
+                                {actStatusLabel(act.status)}
+                              </span>
+                            </div>
+                            {act.cover_image && (
+                              <img src={act.cover_image} alt={act.title} className="tl-card-img" loading="lazy" />
+                            )}
+                            <h3 className="tl-card-title">{act.title}</h3>
+                            {act.short_desc && <p className="tl-card-desc">{act.short_desc}</p>}
+                            <span className="tl-card-link">Detaljnije &rarr;</span>
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="tl-empty">
+                  <div className="tl-empty-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="48" height="48">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <p className="tl-empty-text">Aktivnosti za ovaj {isProject ? 'projekat' : 'inicijativu'} biće uskoro objavljene.</p>
+                  <p className="tl-empty-sub">Pratite ovu stranicu za ažuriranja o svim aktivnostima, dokumentima i rezultatima.</p>
+                </div>
+              )}
+            </section>
 
           </div>
         </article>

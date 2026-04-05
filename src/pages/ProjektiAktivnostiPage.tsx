@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, type Project, type Initiative } from '../lib/supabase'
+import { supabase, type Project, type Initiative, type Activity } from '../lib/supabase'
+
+interface CalendarEvent {
+  kind: 'project' | 'initiative' | 'activity'
+  title: string
+  date: string | null
+  status: string
+  link: string
+  parentLabel?: string
+}
 
 export default function ProjektiAktivnostiPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [initiatives, setInitiatives] = useState<Initiative[]>([])
+  const [activities, setActivities] = useState<Activity[]>([])
   const [loadingInit, setLoadingInit] = useState(true)
 
   useEffect(() => {
@@ -13,11 +23,14 @@ export default function ProjektiAktivnostiPage() {
     Promise.all([
       supabase.from('projects').select('*').eq('visible', true).order('sort_order'),
       supabase.from('initiatives').select('*').eq('visible', true).order('sort_order'),
-    ]).then(([{ data: projData, error: projErr }, { data: initData, error: initErr }]) => {
+      supabase.from('project_activities').select('*').order('activity_date', { ascending: false }),
+    ]).then(([{ data: projData, error: projErr }, { data: initData, error: initErr }, { data: actData, error: actErr }]) => {
       if (projErr) console.error('Supabase projects:', projErr.message)
       if (initErr) console.error('Supabase initiatives:', initErr.message)
+      if (actErr) console.error('Supabase activities:', actErr.message)
       setProjects(projData ?? [])
       setInitiatives(initData ?? [])
+      setActivities((actData as Activity[]) ?? [])
       setLoadingInit(false)
     })
   }, [])
@@ -344,61 +357,8 @@ export default function ProjektiAktivnostiPage() {
               </p>
             </div>
 
-            <div className="kal-body kal-body--anim">
-
-              {/* Calendar grid — current month */}
-              <CalendarGrid projects={projects} initiatives={initiatives} />
-
-              {/* Upcoming events list — dynamic */}
-              <div className="kal-events">
-                <p className="kal-events-label">Predstojeće aktivnosti</p>
-
-                <ol className="kal-events-list">
-                  {(() => {
-                    const upcoming = [
-                      ...projects.filter(p => p.status === 'planiran').map(p => ({ type: 'projekat' as const, title: p.title, slug: p.slug, date: p.date_text, status: 'U pripremi' })),
-                      ...projects.filter(p => p.status === 'aktivan').map(p => ({ type: 'projekat' as const, title: p.title, slug: p.slug, date: p.date_text, status: 'Aktivan' })),
-                      ...initiatives.filter(i => i.status === 'aktivan').map(i => ({ type: 'inicijativa' as const, title: i.title, slug: i.slug, date: i.date_text, status: 'Aktivan' })),
-                    ]
-                    if (upcoming.length === 0) return <li className="kal-event"><div className="kal-event-body"><p>Nema najavljenih aktivnosti.</p></div></li>
-                    return upcoming.map((item, idx) => {
-                      const isPlanned = item.status === 'U pripremi'
-                      return (
-                        <li key={idx} className={`kal-event ${isPlanned ? 'kal-event--sastanak' : 'kal-event--akcija'}`}>
-                          <Link to={`/projekti-i-aktivnosti/${item.type === 'projekat' ? 'projekat' : 'inicijativa'}/${item.slug}`} className="kal-event-link">
-                            <div className="kal-event-date">
-                              <span className="kal-event-day" style={{ fontSize: '0.7rem', lineHeight: 1.2 }}>
-                                {isPlanned ? (
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: 20, height: 20 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                ) : (
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: 20, height: 20 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                )}
-                              </span>
-                              {item.date && <span className="kal-event-mon">{item.date}</span>}
-                            </div>
-                            <div className="kal-event-body">
-                              <span className="kal-event-type">{item.type === 'projekat' ? 'Projekat' : 'Inicijativa'}</span>
-                              <h3 className="kal-event-title">{item.title}</h3>
-                              <p className="kal-event-meta">
-                                <span className={`kal-status-badge ${isPlanned ? 'kal-status-badge--planned' : 'kal-status-badge--active'}`}>
-                                  {item.status}
-                                </span>
-                              </p>
-                            </div>
-                            <span className="kal-event-cta">Detaljnije</span>
-                          </Link>
-                        </li>
-                      )
-                    })
-                  })()}
-                </ol>
-
-                <p className="kal-events-note">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  Kalendar se automatski ažurira na osnovu podataka iz baze
-                </p>
-              </div>
-
+            <div className="kal-body kal-body--anim kal-body--full">
+              <CalendarGrid projects={projects} initiatives={initiatives} activities={activities} />
             </div>
           </div>
         </section>
@@ -410,7 +370,15 @@ export default function ProjektiAktivnostiPage() {
 
 const MONTH_NAMES = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar']
 
-function CalendarGrid({ projects, initiatives }: { projects: Project[]; initiatives: Initiative[] }) {
+interface DayEvent {
+  title: string
+  link: string
+  kind: 'project' | 'initiative' | 'activity'
+  status: string
+  parentLabel?: string
+}
+
+function CalendarGrid({ projects, initiatives, activities }: { projects: Project[]; initiatives: Initiative[]; activities: Activity[] }) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth())
   const [year, setYear] = useState(now.getFullYear())
@@ -420,14 +388,36 @@ function CalendarGrid({ projects, initiatives }: { projects: Project[]; initiati
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const todayDay = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : -1
 
-  const planned = [
-    ...projects.filter(p => p.status === 'planiran').map(p => p.title),
-    ...initiatives.filter(i => i.status === 'aktivan').map(i => i.title),
-  ]
-  const hasUpcoming = planned.length > 0
+  const parentMap = new Map<string, { title: string; slug: string; type: 'projekat' | 'inicijativa' }>()
+  projects.forEach(p => parentMap.set(p.id, { title: p.title, slug: p.slug, type: 'projekat' }))
+  initiatives.forEach(i => parentMap.set(i.id, { title: i.title, slug: i.slug, type: 'inicijativa' }))
 
-  function prev() { if (month === 0) { setMonth(11); setYear(y => y - 1) } else setMonth(m => m - 1) }
-  function next() { if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1) }
+  const dayEventsMap = new Map<number, DayEvent[]>()
+
+  activities.forEach(act => {
+    const d = new Date(act.activity_date)
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate()
+      const parent = parentMap.get(act.parent_id)
+      if (!parent) return
+      const arr = dayEventsMap.get(day) ?? []
+      arr.push({
+        title: act.title,
+        link: `/projekti-i-aktivnosti/${parent.type}/${parent.slug}/aktivnost/${act.slug}`,
+        kind: 'activity',
+        status: act.status === 'planirano' ? 'Planirano' : act.status === 'u_toku' ? 'U toku' : 'Završeno',
+        parentLabel: parent.title,
+      })
+      dayEventsMap.set(day, arr)
+    }
+  })
+
+  function prev() {
+    if (month === 0) { setMonth(11); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function next() {
+    if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
 
   return (
     <div className="kal-cal">
@@ -452,17 +442,103 @@ function CalendarGrid({ projects, initiatives }: { projects: Project[]; initiati
         {[...Array(daysInMonth)].map((_, i) => {
           const day = i + 1
           const isToday = day === todayDay
+          const evts = dayEventsMap.get(day)
+          const hasEvents = !!evts && evts.length > 0
           return (
-            <div key={day} className={`kal-day${isToday ? ' kal-day--today' : ''}`} role="gridcell">
+            <div
+              key={day}
+              className={`kal-day${isToday ? ' kal-day--today' : ''}${hasEvents ? ' kal-day--has-events' : ''}`}
+              role="gridcell"
+            >
               <span className="kal-day-num">{day}</span>
+              {hasEvents && (
+                <div className="kal-day-events">
+                  {evts.map((ev, j) => (
+                    <Link key={j} to={ev.link} className={`kal-day-ev kal-day-ev--${ev.status === 'Planirano' ? 'planned' : ev.status === 'U toku' ? 'active' : 'done'}`}>
+                      <span className="kal-day-ev-title">{ev.title}</span>
+                      <span className="kal-day-ev-parent">{ev.parentLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
       <div className="kal-cal-legend">
-        {hasUpcoming && <span className="kal-cal-legend-item kal-cal-legend-item--sastanak">U pripremi</span>}
-        <span className="kal-cal-legend-item kal-cal-legend-item--akcija">Aktivan</span>
+        <span className="kal-cal-legend-item kal-cal-legend-item--planned">Planirano</span>
+        <span className="kal-cal-legend-item kal-cal-legend-item--active">U toku</span>
+        <span className="kal-cal-legend-item kal-cal-legend-item--done">Završeno</span>
+      </div>
+
+      {/* All events list below calendar */}
+      <div className="kal-all-events">
+        <p className="kal-all-events-label">Sve aktivnosti, projekti i inicijative</p>
+        <ol className="kal-all-events-list">
+          {(() => {
+            const allEvents: CalendarEvent[] = []
+
+            projects.forEach(p => {
+              allEvents.push({
+                kind: 'project', title: p.title, date: p.date_text,
+                status: p.status === 'planiran' ? 'U pripremi' : p.status === 'aktivan' ? 'Aktivan' : 'Završen',
+                link: `/projekti-i-aktivnosti/projekat/${p.slug}`,
+              })
+            })
+            initiatives.forEach(i => {
+              allEvents.push({
+                kind: 'initiative', title: i.title, date: i.date_text,
+                status: i.status === 'aktivan' ? 'Aktivan' : i.status === 'zavrsen' ? 'Završen' : 'U pripremi',
+                link: `/projekti-i-aktivnosti/inicijativa/${i.slug}`,
+              })
+            })
+            activities.forEach(act => {
+              const parent = parentMap.get(act.parent_id)
+              if (!parent) return
+              allEvents.push({
+                kind: 'activity', title: act.title, date: act.activity_date,
+                status: act.status === 'planirano' ? 'Planirano' : act.status === 'u_toku' ? 'U toku' : 'Završeno',
+                link: `/projekti-i-aktivnosti/${parent.type}/${parent.slug}/aktivnost/${act.slug}`,
+                parentLabel: parent.title,
+              })
+            })
+
+            allEvents.sort((a, b) => {
+              if (!a.date) return 1
+              if (!b.date) return -1
+              return new Date(b.date).getTime() - new Date(a.date).getTime()
+            })
+
+            if (allEvents.length === 0) return <li className="kal-all-ev-item"><p>Nema najavljenih aktivnosti.</p></li>
+
+            return allEvents.map((ev, idx) => {
+              const dateStr = ev.date ? (() => {
+                const d = new Date(ev.date)
+                return isNaN(d.getTime()) ? ev.date : d.toLocaleDateString('sr-Latn', { day: 'numeric', month: 'short', year: 'numeric' })
+              })() : null
+              const badgeClass = ev.status === 'U pripremi' || ev.status === 'Planirano' ? 'planned' : ev.status === 'U toku' || ev.status === 'Aktivan' ? 'active' : 'done'
+
+              return (
+                <li key={idx} className={`kal-all-ev-item kal-all-ev-item--${badgeClass}`}>
+                  <Link to={ev.link} className="kal-all-ev-link">
+                    <div className="kal-all-ev-left">
+                      <span className="kal-all-ev-kind">
+                        {ev.kind === 'project' ? 'Projekat' : ev.kind === 'initiative' ? 'Inicijativa' : 'Aktivnost'}
+                      </span>
+                      <h4 className="kal-all-ev-title">{ev.title}</h4>
+                      {ev.parentLabel && <span className="kal-all-ev-parent">{ev.parentLabel}</span>}
+                    </div>
+                    <div className="kal-all-ev-right">
+                      {dateStr && <span className="kal-all-ev-date">{dateStr}</span>}
+                      <span className={`kal-status-badge kal-status-badge--${badgeClass}`}>{ev.status}</span>
+                    </div>
+                  </Link>
+                </li>
+              )
+            })
+          })()}
+        </ol>
       </div>
     </div>
   )

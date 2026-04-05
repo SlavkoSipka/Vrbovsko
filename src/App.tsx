@@ -9,6 +9,7 @@ import OdrzivRazvojPage from './pages/OdrzivRazvojPage'
 import NasaZajednicaPage from './pages/NasaZajednicaPage'
 import ProjektiAktivnostiPage from './pages/ProjektiAktivnostiPage'
 import InicijativaPage from './pages/InicijativaPage'
+import ActivityPage from './pages/ActivityPage'
 import SaradnjaPartneriPage from './pages/SaradnjaPartneriPage'
 import TopicPage from './pages/TopicPage'
 import ForumPage from './pages/ForumPage'
@@ -52,6 +53,7 @@ function App() {
         <Route path="/nasa-zajednica/zid/:wallType" element={<PublicLayout><WallPage /></PublicLayout>} />
         <Route path="/projekti-i-aktivnosti" element={<PublicLayout><ProjektiAktivnostiPage /></PublicLayout>} />
         <Route path="/projekti-i-aktivnosti/:type/:slug" element={<PublicLayout><InicijativaPage /></PublicLayout>} />
+        <Route path="/projekti-i-aktivnosti/:type/:slug/aktivnost/:activitySlug" element={<PublicLayout><ActivityPage /></PublicLayout>} />
         <Route path="/saradnja-partneri" element={<PublicLayout><SaradnjaPartneriPage /></PublicLayout>} />
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, type Topic, type TopicItem, type TopicDocument, type Section, type ForumTopic, type ForumPost, type ForumReply, type SurveyPoll, type SurveyOption, type SurveyVote, type WallPost, type WallReply, type Project, type ProjectDocument, type Initiative, type InitiativeDocument, type Partner, type Fond } from '../lib/supabase'
+import { supabase, type Topic, type TopicItem, type TopicDocument, type Section, type ForumTopic, type ForumPost, type ForumReply, type SurveyPoll, type SurveyOption, type SurveyVote, type WallPost, type WallReply, type Project, type ProjectDocument, type Initiative, type InitiativeDocument, type Partner, type Fond, type Activity, type ActivityDocument, type ActivityGalleryImage, type ProjectPhase } from '../lib/supabase'
 import { compressAndUpload } from '../lib/imageCompressor'
 
 /* ======================================= */
@@ -659,7 +659,7 @@ function ProjectEditor({ project, onSave, onCancel }: {
   project: Project | null; onSave: () => void; onCancel: () => void
 }) {
   const isNew = !project
-  const [activeTab, setActiveTab] = useState<'info' | 'docs'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'docs' | 'activities' | 'phases'>('info')
   const [title, setTitle] = useState(project?.title ?? '')
   const [slug, setSlug] = useState(project?.slug ?? '')
   const [description, setDescription] = useState(project?.description ?? '')
@@ -668,20 +668,46 @@ function ProjectEditor({ project, onSave, onCancel }: {
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(project?.date_text ?? '')
   const [partner, setPartner] = useState(project?.partner ?? '')
-  const [phaseCurrent, setPhaseCurrent] = useState(project?.phase_current ?? 0)
-  const [phaseTotal, setPhaseTotal] = useState(project?.phase_total ?? 0)
+  const [goals, setGoals] = useState((project as unknown as Record<string, string>)?.goals ?? '')
   const [progressPct, setProgressPct] = useState(project?.progress_pct ?? 0)
   const [sortOrder, setSortOrder] = useState(project?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
 
   const [docs, setDocs] = useState<ProjectDocument[]>([])
   const [docsLoaded, setDocsLoaded] = useState(false)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [showNewActivity, setShowNewActivity] = useState(false)
+  const [phases, setPhases] = useState<ProjectPhase[]>([])
+  const [editingPhase, setEditingPhase] = useState<ProjectPhase | null>(null)
+  const [showNewPhase, setShowNewPhase] = useState(false)
 
   useEffect(() => {
     if (!project) { setDocsLoaded(true); return }
-    supabase.from('project_documents').select('*').eq('project_id', project.id).order('sort_order')
-      .then(({ data }) => { setDocs(data ?? []); setDocsLoaded(true) })
+    Promise.all([
+      supabase.from('project_documents').select('*').eq('project_id', project.id).order('sort_order'),
+      supabase.from('project_activities').select('*').eq('parent_type', 'project').eq('parent_id', project.id).order('activity_date', { ascending: false }),
+      supabase.from('project_phases').select('*').eq('project_id', project.id).order('sort_order'),
+    ]).then(([{ data: d }, { data: a }, { data: p }]) => {
+      setDocs(d ?? [])
+      setActivities(a ?? [])
+      setPhases(p ?? [])
+      setDocsLoaded(true)
+    })
   }, [project])
+
+  function loadActivities() {
+    if (!project) return
+    supabase.from('project_activities').select('*').eq('parent_type', 'project').eq('parent_id', project.id)
+      .order('activity_date', { ascending: false })
+      .then(({ data }) => setActivities(data ?? []))
+  }
+
+  function loadPhases() {
+    if (!project) return
+    supabase.from('project_phases').select('*').eq('project_id', project.id).order('sort_order')
+      .then(({ data }) => setPhases(data ?? []))
+  }
 
   function makeSlug(text: string) {
     return text.toLowerCase()
@@ -702,15 +728,36 @@ function ProjectEditor({ project, onSave, onCancel }: {
   function updateDoc(idx: number, updated: ProjectDocument) { setDocs(prev => prev.map((d, i) => i === idx ? updated : d)) }
   function removeDoc(idx: number) { setDocs(prev => prev.filter((_, i) => i !== idx)) }
 
+  async function deleteActivity(id: string) {
+    if (!confirm('Obrisati ovu aktivnost i sve njene dokumente i fotografije?')) return
+    await supabase.from('project_activities').delete().eq('id', id)
+    loadActivities()
+  }
+
+  async function changeActivityStatus(id: string, newStatus: string) {
+    await supabase.from('project_activities').update({ status: newStatus }).eq('id', id)
+    loadActivities()
+  }
+
+  async function deletePhase(id: string) {
+    if (!confirm('Obrisati ovu fazu?')) return
+    await supabase.from('project_phases').delete().eq('id', id)
+    loadPhases()
+  }
+
+  async function changePhaseStatus(id: string, newStatus: string) {
+    await supabase.from('project_phases').update({ status: newStatus }).eq('id', id)
+    loadPhases()
+  }
+
   async function handleSave() {
     if (!title.trim()) { alert('Unesite naslov projekta.'); return }
     setSaving(true)
     const finalSlug = slug || makeSlug(title)
-    const payload = {
+    const payload: Record<string, unknown> = {
       title: title.trim(), slug: finalSlug, description, status,
-      cover_image: coverImage, date_text: dateText, partner,
-      phase_current: phaseCurrent, phase_total: phaseTotal, progress_pct: progressPct,
-      sort_order: sortOrder,
+      cover_image: coverImage, date_text: dateText, partner, goals,
+      progress_pct: progressPct, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }
 
@@ -749,7 +796,9 @@ function ProjectEditor({ project, onSave, onCancel }: {
         </div>
 
         <div className="adm-tabs">
-          <button className={`adm-tab${activeTab === 'info' ? ' active' : ''}`} onClick={() => setActiveTab('info')}>Osnovni podaci</button>
+          <button className={`adm-tab${activeTab === 'info' ? ' active' : ''}`} onClick={() => setActiveTab('info')}>Podaci</button>
+          <button className={`adm-tab${activeTab === 'activities' ? ' active' : ''}`} onClick={() => setActiveTab('activities')}>Aktivnosti ({activities.length})</button>
+          <button className={`adm-tab${activeTab === 'phases' ? ' active' : ''}`} onClick={() => setActiveTab('phases')}>Faze ({phases.length})</button>
           <button className={`adm-tab${activeTab === 'docs' ? ' active' : ''}`} onClick={() => setActiveTab('docs')}>Dokumenti ({docs.length})</button>
         </div>
 
@@ -769,6 +818,10 @@ function ProjectEditor({ project, onSave, onCancel }: {
               <div className="adm-field">
                 <label>Opis / Tekst</label>
                 <textarea rows={8} value={description} onChange={e => setDescription(e.target.value)} />
+              </div>
+              <div className="adm-field">
+                <label>Ciljevi (svaki cilj u novom redu)</label>
+                <textarea rows={4} value={goals} onChange={e => setGoals(e.target.value)} placeholder="Cilj 1&#10;Cilj 2&#10;Cilj 3" />
               </div>
               <div className="adm-field-row">
                 <div className="adm-field">
@@ -790,14 +843,6 @@ function ProjectEditor({ project, onSave, onCancel }: {
               </div>
               <div className="adm-field-row">
                 <div className="adm-field">
-                  <label>Trenutna faza</label>
-                  <input type="number" value={phaseCurrent} onChange={e => setPhaseCurrent(Number(e.target.value))} style={{ maxWidth: 100 }} />
-                </div>
-                <div className="adm-field">
-                  <label>Ukupno faza</label>
-                  <input type="number" value={phaseTotal} onChange={e => setPhaseTotal(Number(e.target.value))} style={{ maxWidth: 100 }} />
-                </div>
-                <div className="adm-field">
                   <label>Napredak (%)</label>
                   <input type="number" min={0} max={100} value={progressPct} onChange={e => setProgressPct(Number(e.target.value))} style={{ maxWidth: 100 }} />
                 </div>
@@ -811,9 +856,79 @@ function ProjectEditor({ project, onSave, onCancel }: {
                 <AdminImageBtn imageUrl={coverImage} uploading={uploadingCover} onSelect={handleCoverSelect} onRemove={() => setCoverImage('')} />
               </div>
             </>
+          ) : activeTab === 'activities' ? (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Aktivnosti se prikazuju kao timeline na stranici projekta. Svaka aktivnost ima svoju podstranicu.</p>
+              {!project ? (
+                <p className="adm-loading">Sačuvajte projekat prvo, pa dodajte aktivnosti.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <button className="adm-btn adm-btn--save" onClick={() => { setShowNewActivity(true); setEditingActivity(null) }}>+ Nova aktivnost</button>
+                  </div>
+                  {activities.map(act => (
+                    <div key={act.id} className="adm-act-row">
+                      <div className="adm-act-row-info">
+                        <time className="adm-act-row-date">{new Date(act.activity_date).toLocaleDateString('sr-Latn')}</time>
+                        <select
+                          className={`adm-status-select adm-status-select--${act.status === 'zavrseno' ? 'done' : act.status === 'u_toku' ? 'active' : 'planned'}`}
+                          value={act.status}
+                          onChange={e => changeActivityStatus(act.id, e.target.value)}
+                        >
+                          <option value="planirano">Planirano</option>
+                          <option value="u_toku">U toku</option>
+                          <option value="zavrseno">Završeno</option>
+                        </select>
+                        <strong>{act.title}</strong>
+                      </div>
+                      <div className="adm-card-actions" style={{ flexShrink: 0 }}>
+                        <button className="adm-btn adm-btn--edit" onClick={() => { setEditingActivity(act); setShowNewActivity(false) }}>Izmeni</button>
+                        <button className="adm-btn adm-btn--delete" onClick={() => deleteActivity(act.id)}>Obriši</button>
+                      </div>
+                    </div>
+                  ))}
+                  {activities.length === 0 && <p className="adm-loading">Nema aktivnosti. Dodajte prvu aktivnost.</p>}
+                </>
+              )}
+            </div>
+          ) : activeTab === 'phases' ? (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Faze projekta prikazuju se kao kartice na stranici projekta.</p>
+              {!project ? (
+                <p className="adm-loading">Sačuvajte projekat prvo, pa dodajte faze.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <button className="adm-btn adm-btn--save" onClick={() => { setShowNewPhase(true); setEditingPhase(null) }}>+ Nova faza</button>
+                  </div>
+                  {phases.map((ph, idx) => (
+                    <div key={ph.id} className="adm-act-row">
+                      <div className="adm-act-row-info">
+                        <span style={{ color: '#999', fontWeight: 600, fontSize: '0.8rem' }}>Faza {idx + 1}</span>
+                        <select
+                          className={`adm-status-select adm-status-select--${ph.status === 'zavrseno' ? 'done' : ph.status === 'u_toku' ? 'active' : 'planned'}`}
+                          value={ph.status}
+                          onChange={e => changePhaseStatus(ph.id, e.target.value)}
+                        >
+                          <option value="planirano">Planirano</option>
+                          <option value="u_toku">U toku</option>
+                          <option value="zavrseno">Završeno</option>
+                        </select>
+                        <strong>{ph.title}</strong>
+                      </div>
+                      <div className="adm-card-actions" style={{ flexShrink: 0 }}>
+                        <button className="adm-btn adm-btn--edit" onClick={() => { setEditingPhase(ph); setShowNewPhase(false) }}>Izmeni</button>
+                        <button className="adm-btn adm-btn--delete" onClick={() => deletePhase(ph.id)}>Obriši</button>
+                      </div>
+                    </div>
+                  ))}
+                  {phases.length === 0 && <p className="adm-loading">Nema faza. Dodajte prvu fazu.</p>}
+                </>
+              )}
+            </div>
           ) : (
             <div className="adm-items-list">
-              <p className="adm-items-hint">Dodajte dokumente, PDF-ove, slike ili linkove koji će se prikazivati na stranici projekta.</p>
+              <p className="adm-items-hint">Opšti dokumenti vezani za ceo projekat (ugovor, izveštaji, prezentacije).</p>
               {docs.map((doc, idx) => (
                 <DocRow
                   key={doc.id}
@@ -834,6 +949,27 @@ function ProjectEditor({ project, onSave, onCancel }: {
           </button>
         </div>
       </div>
+
+      {/* Activity editor popup */}
+      {(editingActivity || showNewActivity) && project && (
+        <ActivityEditor
+          activity={editingActivity}
+          parentType="project"
+          parentId={project.id}
+          onSave={() => { setEditingActivity(null); setShowNewActivity(false); loadActivities() }}
+          onCancel={() => { setEditingActivity(null); setShowNewActivity(false) }}
+        />
+      )}
+
+      {/* Phase editor popup */}
+      {(editingPhase || showNewPhase) && project && (
+        <PhaseEditor
+          phase={editingPhase}
+          projectId={project.id}
+          onSave={() => { setEditingPhase(null); setShowNewPhase(false); loadPhases() }}
+          onCancel={() => { setEditingPhase(null); setShowNewPhase(false) }}
+        />
+      )}
     </div>
   )
 }
@@ -846,7 +982,7 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
   initiative: Initiative | null; onSave: () => void; onCancel: () => void
 }) {
   const isNew = !initiative
-  const [activeTab, setActiveTab] = useState<'info' | 'docs'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'docs' | 'activities'>('info')
   const [title, setTitle] = useState(initiative?.title ?? '')
   const [slug, setSlug] = useState(initiative?.slug ?? '')
   const [description, setDescription] = useState(initiative?.description ?? '')
@@ -854,17 +990,34 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
   const [coverImage, setCoverImage] = useState(initiative?.cover_image ?? '')
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(initiative?.date_text ?? '')
+  const [goals, setGoals] = useState((initiative as unknown as Record<string, string>)?.goals ?? '')
   const [sortOrder, setSortOrder] = useState(initiative?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
 
   const [docs, setDocs] = useState<InitiativeDocument[]>([])
   const [docsLoaded, setDocsLoaded] = useState(false)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [showNewActivity, setShowNewActivity] = useState(false)
 
   useEffect(() => {
     if (!initiative) { setDocsLoaded(true); return }
-    supabase.from('initiative_documents').select('*').eq('initiative_id', initiative.id).order('sort_order')
-      .then(({ data }) => { setDocs(data ?? []); setDocsLoaded(true) })
+    Promise.all([
+      supabase.from('initiative_documents').select('*').eq('initiative_id', initiative.id).order('sort_order'),
+      supabase.from('project_activities').select('*').eq('parent_type', 'initiative').eq('parent_id', initiative.id).order('activity_date', { ascending: false }),
+    ]).then(([{ data: d }, { data: a }]) => {
+      setDocs(d ?? [])
+      setActivities(a ?? [])
+      setDocsLoaded(true)
+    })
   }, [initiative])
+
+  function loadActivities() {
+    if (!initiative) return
+    supabase.from('project_activities').select('*').eq('parent_type', 'initiative').eq('parent_id', initiative.id)
+      .order('activity_date', { ascending: false })
+      .then(({ data }) => setActivities(data ?? []))
+  }
 
   function makeSlug(text: string) {
     return text.toLowerCase()
@@ -884,13 +1037,24 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
   function updateDoc(idx: number, updated: InitiativeDocument) { setDocs(prev => prev.map((d, i) => i === idx ? updated : d)) }
   function removeDoc(idx: number) { setDocs(prev => prev.filter((_, i) => i !== idx)) }
 
+  async function deleteActivity(id: string) {
+    if (!confirm('Obrisati ovu aktivnost i sve njene dokumente i fotografije?')) return
+    await supabase.from('project_activities').delete().eq('id', id)
+    loadActivities()
+  }
+
+  async function changeActivityStatus(id: string, newStatus: string) {
+    await supabase.from('project_activities').update({ status: newStatus }).eq('id', id)
+    loadActivities()
+  }
+
   async function handleSave() {
     if (!title.trim()) { alert('Unesite naslov inicijative.'); return }
     setSaving(true)
     const finalSlug = slug || makeSlug(title)
-    const payload = {
+    const payload: Record<string, unknown> = {
       title: title.trim(), slug: finalSlug, description, status,
-      cover_image: coverImage, date_text: dateText, sort_order: sortOrder,
+      cover_image: coverImage, date_text: dateText, goals, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }
 
@@ -929,7 +1093,8 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
         </div>
 
         <div className="adm-tabs">
-          <button className={`adm-tab${activeTab === 'info' ? ' active' : ''}`} onClick={() => setActiveTab('info')}>Osnovni podaci</button>
+          <button className={`adm-tab${activeTab === 'info' ? ' active' : ''}`} onClick={() => setActiveTab('info')}>Podaci</button>
+          <button className={`adm-tab${activeTab === 'activities' ? ' active' : ''}`} onClick={() => setActiveTab('activities')}>Aktivnosti ({activities.length})</button>
           <button className={`adm-tab${activeTab === 'docs' ? ' active' : ''}`} onClick={() => setActiveTab('docs')}>Dokumenti ({docs.length})</button>
         </div>
 
@@ -949,6 +1114,10 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
               <div className="adm-field">
                 <label>Tekst / Saopštenje</label>
                 <textarea rows={10} value={description} onChange={e => setDescription(e.target.value)} />
+              </div>
+              <div className="adm-field">
+                <label>Ciljevi (svaki cilj u novom redu)</label>
+                <textarea rows={4} value={goals} onChange={e => setGoals(e.target.value)} placeholder="Cilj 1&#10;Cilj 2&#10;Cilj 3" />
               </div>
               <div className="adm-field-row">
                 <div className="adm-field">
@@ -972,9 +1141,44 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
                 <AdminImageBtn imageUrl={coverImage} uploading={uploadingCover} onSelect={handleCoverSelect} onRemove={() => setCoverImage('')} />
               </div>
             </>
+          ) : activeTab === 'activities' ? (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Aktivnosti se prikazuju kao timeline na stranici inicijative. Svaka aktivnost ima svoju podstranicu.</p>
+              {!initiative ? (
+                <p className="adm-loading">Sačuvajte inicijativu prvo, pa dodajte aktivnosti.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <button className="adm-btn adm-btn--save" onClick={() => { setShowNewActivity(true); setEditingActivity(null) }}>+ Nova aktivnost</button>
+                  </div>
+                  {activities.map(act => (
+                    <div key={act.id} className="adm-act-row">
+                      <div className="adm-act-row-info">
+                        <time className="adm-act-row-date">{new Date(act.activity_date).toLocaleDateString('sr-Latn')}</time>
+                        <select
+                          className={`adm-status-select adm-status-select--${act.status === 'zavrseno' ? 'done' : act.status === 'u_toku' ? 'active' : 'planned'}`}
+                          value={act.status}
+                          onChange={e => changeActivityStatus(act.id, e.target.value)}
+                        >
+                          <option value="planirano">Planirano</option>
+                          <option value="u_toku">U toku</option>
+                          <option value="zavrseno">Završeno</option>
+                        </select>
+                        <strong>{act.title}</strong>
+                      </div>
+                      <div className="adm-card-actions" style={{ flexShrink: 0 }}>
+                        <button className="adm-btn adm-btn--edit" onClick={() => { setEditingActivity(act); setShowNewActivity(false) }}>Izmeni</button>
+                        <button className="adm-btn adm-btn--delete" onClick={() => deleteActivity(act.id)}>Obriši</button>
+                      </div>
+                    </div>
+                  ))}
+                  {activities.length === 0 && <p className="adm-loading">Nema aktivnosti. Dodajte prvu aktivnost.</p>}
+                </>
+              )}
+            </div>
           ) : (
             <div className="adm-items-list">
-              <p className="adm-items-hint">Dodajte slike, dokumente, PDF-ove ili linkove koji će se prikazivati na stranici inicijative.</p>
+              <p className="adm-items-hint">Opšti dokumenti vezani za celu inicijativu.</p>
               {docs.map((doc, idx) => (
                 <DocRow
                   key={doc.id}
@@ -992,6 +1196,350 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
           <button className="adm-btn adm-btn--cancel" onClick={onCancel}>Otkaži</button>
           <button className="adm-btn adm-btn--save" onClick={handleSave} disabled={saving || uploadingCover}>
             {saving ? 'Čuvanje...' : (isNew ? 'Kreiraj' : 'Sačuvaj')}
+          </button>
+        </div>
+      </div>
+
+      {/* Activity editor popup */}
+      {(editingActivity || showNewActivity) && initiative && (
+        <ActivityEditor
+          activity={editingActivity}
+          parentType="initiative"
+          parentId={initiative.id}
+          onSave={() => { setEditingActivity(null); setShowNewActivity(false); loadActivities() }}
+          onCancel={() => { setEditingActivity(null); setShowNewActivity(false) }}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ======================================= */
+/*  ACTIVITY EDITOR                        */
+/* ======================================= */
+
+function ActivityEditor({ activity, parentType, parentId, onSave, onCancel }: {
+  activity: Activity | null; parentType: 'project' | 'initiative'; parentId: string; onSave: () => void; onCancel: () => void
+}) {
+  const isNew = !activity
+  const [activeTab, setActiveTab] = useState<'info' | 'docs' | 'gallery'>('info')
+  const [title, setTitle] = useState(activity?.title ?? '')
+  const [slug, setSlug] = useState(activity?.slug ?? '')
+  const [activityDate, setActivityDate] = useState(activity?.activity_date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10))
+  const [shortDesc, setShortDesc] = useState(activity?.short_desc ?? '')
+  const [description, setDescription] = useState(activity?.description ?? '')
+  const [goals, setGoals] = useState(activity?.goals ?? '')
+  const [status, setStatus] = useState(activity?.status ?? 'planirano')
+  const [coverImage, setCoverImage] = useState(activity?.cover_image ?? '')
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [partners, setPartners] = useState(activity?.partners ?? '')
+  const [saving, setSaving] = useState(false)
+
+  const [docs, setDocs] = useState<ActivityDocument[]>([])
+  const [gallery, setGallery] = useState<ActivityGalleryImage[]>([])
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
+
+  useEffect(() => {
+    if (!activity) { setDataLoaded(true); return }
+    Promise.all([
+      supabase.from('activity_documents').select('*').eq('activity_id', activity.id).order('sort_order'),
+      supabase.from('activity_gallery').select('*').eq('activity_id', activity.id).order('sort_order'),
+    ]).then(([{ data: d }, { data: g }]) => {
+      setDocs(d ?? [])
+      setGallery(g ?? [])
+      setDataLoaded(true)
+    })
+  }, [activity])
+
+  function makeSlug(text: string) {
+    return text.toLowerCase()
+      .replace(/[čć]/g, 'c').replace(/[šś]/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'dj')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  }
+
+  async function handleCoverSelect(file: File) {
+    setUploadingCover(true)
+    try { setCoverImage(await compressAndUpload(file)) } catch { alert('Greška pri uploadu slike.') }
+    setUploadingCover(false)
+  }
+
+  function addDoc() {
+    setDocs(prev => [...prev, { id: `new-${Date.now()}`, activity_id: activity?.id ?? '', title: '', url: '', file_type: 'pdf', sort_order: prev.length + 1 }])
+  }
+
+  async function handleDocFileUpload(idx: number, file: File) {
+    const ext = file.name.split('.').pop()
+    const path = `documents/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file)
+    if (error) { alert('Greška pri uploadu fajla'); return }
+    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
+    const isPdf = ext?.toLowerCase() === 'pdf'
+    const updatedDoc = { ...docs[idx], url: urlData.publicUrl, file_type: isPdf ? 'pdf' : 'file', title: docs[idx].title || file.name }
+    setDocs(prev => prev.map((d, i) => i === idx ? updatedDoc : d))
+  }
+
+  async function handleGalleryUpload(files: FileList) {
+    setUploadingGallery(true)
+    const newImages: ActivityGalleryImage[] = []
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const url = await compressAndUpload(files[i])
+        newImages.push({ id: `new-${Date.now()}-${i}`, activity_id: activity?.id ?? '', url, alt: '', sort_order: gallery.length + newImages.length + 1 })
+      } catch { alert(`Greška pri uploadu slike ${files[i].name}`) }
+    }
+    setGallery(prev => [...prev, ...newImages])
+    setUploadingGallery(false)
+  }
+
+  function removeGalleryImage(idx: number) {
+    setGallery(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleSave() {
+    if (!title.trim()) { alert('Unesite naziv aktivnosti.'); return }
+    setSaving(true)
+    const finalSlug = slug || makeSlug(title)
+    const payload: Record<string, unknown> = {
+      parent_type: parentType, parent_id: parentId,
+      title: title.trim(), slug: finalSlug, activity_date: activityDate,
+      short_desc: shortDesc, description, goals, status,
+      cover_image: coverImage, partners,
+      visible: true,
+    }
+
+    let activityId = activity?.id
+
+    if (isNew) {
+      const { data, error } = await supabase.from('project_activities').insert(payload).select('id').single()
+      if (error) { alert('Greška: ' + error.message); setSaving(false); return }
+      activityId = data.id
+    } else {
+      const { error } = await supabase.from('project_activities').update(payload).eq('id', activity!.id)
+      if (error) { alert('Greška: ' + error.message); setSaving(false); return }
+    }
+
+    if (activityId) {
+      await supabase.from('activity_documents').delete().eq('activity_id', activityId)
+      if (docs.length > 0) {
+        const docPayloads = docs.filter(d => d.title || d.url).map((d, idx) => ({
+          activity_id: activityId!, title: d.title, url: d.url, file_type: d.file_type, sort_order: idx + 1,
+        }))
+        if (docPayloads.length > 0) await supabase.from('activity_documents').insert(docPayloads)
+      }
+
+      await supabase.from('activity_gallery').delete().eq('activity_id', activityId)
+      if (gallery.length > 0) {
+        const galPayloads = gallery.map((g, idx) => ({
+          activity_id: activityId!, url: g.url, alt: g.alt, sort_order: idx + 1,
+        }))
+        await supabase.from('activity_gallery').insert(galPayloads)
+      }
+    }
+
+    setSaving(false)
+    onSave()
+  }
+
+  return (
+    <div className="adm-editor-overlay" onClick={e => { e.stopPropagation(); onCancel() }} style={{ zIndex: 1100 }}>
+      <div className="adm-editor adm-editor--wide" onClick={e => e.stopPropagation()}>
+        <div className="adm-editor-header">
+          <h2>{isNew ? 'Nova aktivnost' : `Izmeni: ${activity?.title}`}</h2>
+          <button className="adm-editor-close" onClick={onCancel}>&times;</button>
+        </div>
+
+        <div className="adm-tabs">
+          <button className={`adm-tab${activeTab === 'info' ? ' active' : ''}`} onClick={() => setActiveTab('info')}>Podaci</button>
+          <button className={`adm-tab${activeTab === 'docs' ? ' active' : ''}`} onClick={() => setActiveTab('docs')}>Dokumenti ({docs.length})</button>
+          <button className={`adm-tab${activeTab === 'gallery' ? ' active' : ''}`} onClick={() => setActiveTab('gallery')}>Galerija ({gallery.length})</button>
+        </div>
+
+        <div className="adm-editor-body">
+          {!dataLoaded ? (
+            <p className="adm-loading">Učitavanje...</p>
+          ) : activeTab === 'info' ? (
+            <>
+              <div className="adm-field">
+                <label>Naziv aktivnosti</label>
+                <input value={title} onChange={e => { setTitle(e.target.value); if (isNew) setSlug(makeSlug(e.target.value)) }} placeholder="npr. Saopštenje za javnost od 1.4.2026." />
+              </div>
+              <div className="adm-field">
+                <label>Slug (URL)</label>
+                <input value={slug} onChange={e => setSlug(e.target.value)} />
+              </div>
+              <div className="adm-field-row">
+                <div className="adm-field">
+                  <label>Datum aktivnosti</label>
+                  <input type="date" value={activityDate} onChange={e => setActivityDate(e.target.value)} />
+                </div>
+                <div className="adm-field">
+                  <label>Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value as Activity['status'])}>
+                    <option value="planirano">Planirano</option>
+                    <option value="u_toku">U toku</option>
+                    <option value="zavrseno">Završeno</option>
+                  </select>
+                </div>
+              </div>
+              <div className="adm-field">
+                <label>Kratak opis (prikazuje se u timeline-u)</label>
+                <input value={shortDesc} onChange={e => setShortDesc(e.target.value)} placeholder="Kratka rečenica o aktivnosti" />
+              </div>
+              <div className="adm-field">
+                <label>Detaljan opis</label>
+                <textarea rows={6} value={description} onChange={e => setDescription(e.target.value)} placeholder="Šta je urađeno, zašto, u kom kontekstu..." />
+              </div>
+              <div className="adm-field">
+                <label>Ciljevi aktivnosti (svaki cilj u novom redu)</label>
+                <textarea rows={4} value={goals} onChange={e => setGoals(e.target.value)} placeholder="Informisanje javnosti&#10;Pritisak na institucije&#10;Dokumentovanje stanja" />
+              </div>
+              <div className="adm-field">
+                <label>Partneri (razdvojeni zarezom)</label>
+                <input value={partners} onChange={e => setPartners(e.target.value)} placeholder="Lokalna zajednica, Stručni saradnici" />
+              </div>
+              <div className="adm-field">
+                <label>Cover slika</label>
+                <AdminImageBtn imageUrl={coverImage} uploading={uploadingCover} onSelect={handleCoverSelect} onRemove={() => setCoverImage('')} />
+              </div>
+            </>
+          ) : activeTab === 'docs' ? (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Dokumenti vezani za ovu aktivnost (saopštenja, dopisi, zapisnici — sve u PDF formatu).</p>
+              {docs.map((doc, idx) => (
+                <div key={doc.id} className="adm-item-row">
+                  <div className="adm-doc-fields">
+                    <div className="adm-item-field">
+                      <label>Naziv</label>
+                      <input value={doc.title} onChange={e => setDocs(prev => prev.map((d, i) => i === idx ? { ...d, title: e.target.value } : d))} />
+                    </div>
+                    <div className="adm-item-field">
+                      <label>URL</label>
+                      <input value={doc.url} onChange={e => setDocs(prev => prev.map((d, i) => i === idx ? { ...d, url: e.target.value } : d))} />
+                    </div>
+                    <div className="adm-item-field">
+                      <label>Upload PDF</label>
+                      <input type="file" accept=".pdf,.doc,.docx" onChange={e => e.target.files?.[0] && handleDocFileUpload(idx, e.target.files[0])} />
+                    </div>
+                  </div>
+                  <button className="adm-item-delete" onClick={() => setDocs(prev => prev.filter((_, i) => i !== idx))}>&times;</button>
+                </div>
+              ))}
+              <button className="adm-btn adm-btn--add-item" onClick={addDoc}>+ Dodaj dokument</button>
+            </div>
+          ) : (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Fotografije vezane za ovu aktivnost. Možete dodati više odjednom.</p>
+              <div className="adm-gallery-grid">
+                {gallery.map((img, idx) => (
+                  <div key={img.id} className="adm-gallery-thumb">
+                    <img src={img.url} alt="" />
+                    <button className="adm-gallery-remove" onClick={() => removeGalleryImage(idx)}>&times;</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '1rem' }}>
+                <label className="adm-doc-upload-btn" style={{ cursor: 'pointer' }}>
+                  {uploadingGallery ? 'Uploadujem...' : '+ Dodaj fotografije'}
+                  <input type="file" accept="image/*" multiple hidden onChange={e => e.target.files && handleGalleryUpload(e.target.files)} />
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="adm-editor-footer">
+          <button className="adm-btn adm-btn--cancel" onClick={onCancel}>Otkaži</button>
+          <button className="adm-btn adm-btn--save" onClick={handleSave} disabled={saving || uploadingCover || uploadingGallery}>
+            {saving ? 'Čuvanje...' : (isNew ? 'Kreiraj aktivnost' : 'Sačuvaj')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ======================================= */
+/*  PHASE EDITOR                           */
+/* ======================================= */
+
+function PhaseEditor({ phase, projectId, onSave, onCancel }: {
+  phase: ProjectPhase | null; projectId: string; onSave: () => void; onCancel: () => void
+}) {
+  const isNew = !phase
+  const [title, setTitle] = useState(phase?.title ?? '')
+  const [description, setDescription] = useState(phase?.description ?? '')
+  const [status, setStatus] = useState(phase?.status ?? 'planirano')
+  const [coverImage, setCoverImage] = useState(phase?.cover_image ?? '')
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [sortOrder, setSortOrder] = useState(phase?.sort_order ?? 0)
+  const [saving, setSaving] = useState(false)
+
+  async function handleCoverSelect(file: File) {
+    setUploadingCover(true)
+    try { setCoverImage(await compressAndUpload(file)) } catch { alert('Greška pri uploadu slike.') }
+    setUploadingCover(false)
+  }
+
+  async function handleSave() {
+    if (!title.trim()) { alert('Unesite naziv faze.'); return }
+    setSaving(true)
+    const payload = {
+      project_id: projectId, title: title.trim(), description,
+      status, cover_image: coverImage, sort_order: sortOrder,
+    }
+
+    if (isNew) {
+      const { error } = await supabase.from('project_phases').insert(payload)
+      if (error) { alert('Greška: ' + error.message); setSaving(false); return }
+    } else {
+      const { error } = await supabase.from('project_phases').update(payload).eq('id', phase!.id)
+      if (error) { alert('Greška: ' + error.message); setSaving(false); return }
+    }
+
+    setSaving(false)
+    onSave()
+  }
+
+  return (
+    <div className="adm-editor-overlay" onClick={e => { e.stopPropagation(); onCancel() }} style={{ zIndex: 1100 }}>
+      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+        <div className="adm-editor-header">
+          <h2>{isNew ? 'Nova faza' : `Izmeni: ${phase?.title}`}</h2>
+          <button className="adm-editor-close" onClick={onCancel}>&times;</button>
+        </div>
+        <div className="adm-editor-body">
+          <div className="adm-field">
+            <label>Naziv faze</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Pripremna faza" />
+          </div>
+          <div className="adm-field">
+            <label>Opis</label>
+            <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
+          <div className="adm-field-row">
+            <div className="adm-field">
+              <label>Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value as ProjectPhase['status'])}>
+                <option value="planirano">Planirano</option>
+                <option value="u_toku">U toku</option>
+                <option value="zavrseno">Završeno</option>
+              </select>
+            </div>
+            <div className="adm-field">
+              <label>Redosled</label>
+              <input type="number" value={sortOrder} onChange={e => setSortOrder(Number(e.target.value))} style={{ maxWidth: 100 }} />
+            </div>
+          </div>
+          <div className="adm-field">
+            <label>Slika (opciono)</label>
+            <AdminImageBtn imageUrl={coverImage} uploading={uploadingCover} onSelect={handleCoverSelect} onRemove={() => setCoverImage('')} />
+          </div>
+        </div>
+        <div className="adm-editor-footer">
+          <button className="adm-btn adm-btn--cancel" onClick={onCancel}>Otkaži</button>
+          <button className="adm-btn adm-btn--save" onClick={handleSave} disabled={saving || uploadingCover}>
+            {saving ? 'Čuvanje...' : (isNew ? 'Kreiraj fazu' : 'Sačuvaj')}
           </button>
         </div>
       </div>

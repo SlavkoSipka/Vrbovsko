@@ -204,3 +204,50 @@ export interface Fond {
   visible: boolean
   created_at: string
 }
+
+export interface ProjectPhase {
+  id: string
+  project_id: string
+  title: string
+  description: string
+  status: 'planirano' | 'u_toku' | 'zavrseno'
+  cover_image: string
+  sort_order: number
+  created_at: string
+}
+
+export interface Activity {
+  id: string
+  parent_type: 'project' | 'initiative'
+  parent_id: string
+  title: string
+  slug: string
+  activity_date: string
+  short_desc: string
+  description: string
+  goals: string
+  status: 'planirano' | 'u_toku' | 'zavrseno'
+  cover_image: string
+  partners: string
+  sort_order: number
+  visible: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ActivityDocument {
+  id: string
+  activity_id: string
+  title: string
+  url: string
+  file_type: string
+  sort_order: number
+}
+
+export interface ActivityGalleryImage {
+  id: string
+  activity_id: string
+  url: string
+  alt: string
+  sort_order: number
+}
