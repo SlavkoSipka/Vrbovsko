@@ -8193,6 +8193,16 @@ button.gal-slot:hover,
     color: rgba(255,255,255,0.75);
 }
 
+.tp-page .tp-disclaimer-heading {
+    color: #fff;
+}
+.tp-page .tp-disclaimer-subheading {
+    color: rgba(255,255,255,0.92);
+}
+.tp-page .tp-disclaimer-body {
+    color: rgba(255,255,255,0.78);
+}
+
 .tp-page .tp-item {
     background: rgba(255,255,255,0.08);
     border-left-color: var(--accent-green);
@@ -8340,6 +8350,33 @@ button.gal-slot:hover,
     color: var(--text-gray);
     font-style: italic;
     margin: 0;
+}
+
+.tp-disclaimer--legal {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+.tp-disclaimer-heading {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-green-dark);
+    margin: 0;
+    font-style: normal;
+}
+.tp-disclaimer-subheading {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+    font-style: normal;
+}
+.tp-disclaimer-body {
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--text-gray);
+    margin: 0;
+    font-style: normal;
 }
 
 .tp-images {
