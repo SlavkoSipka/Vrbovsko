@@ -22,6 +22,7 @@ CREATE TABLE projects (
   cover_image TEXT DEFAULT '',
   date_text TEXT DEFAULT '',
   partner TEXT DEFAULT '',
+  category TEXT DEFAULT '',
   phase_current INT DEFAULT 0,
   phase_total INT DEFAULT 0,
   progress_pct INT DEFAULT 0,
@@ -43,6 +44,7 @@ CREATE TABLE initiatives (
   status TEXT NOT NULL DEFAULT 'aktivan' CHECK (status IN ('aktivan', 'zavrsen')),
   cover_image TEXT DEFAULT '',
   date_text TEXT DEFAULT '',
+  category TEXT DEFAULT '',
   sort_order INT DEFAULT 0,
   visible BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -283,3 +285,19 @@ Opština Palilula je odgovorila 18.2.2026. da uređenje ovog kompleksa nije u nj
   '11.2.2026.',
   5
 );
+
+-- =============================================
+-- MIGRACIJA: Dodaj kolonu category (pokreni ako tabele već postoje)
+-- =============================================
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '';
+-- ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '';
+
+-- Postavi podrazumevane kategorije za seed podatke
+-- UPDATE projects SET category = 'Životna sredina' WHERE slug = 'zeleni-obod-vrbovskog';
+-- UPDATE projects SET category = 'Urbani razvoj'   WHERE slug = 'unapredjenje-javnog-prostora';
+-- UPDATE projects SET category = 'Životna sredina' WHERE slug = 'otpornost-lokalni-resursi';
+-- UPDATE initiatives SET category = 'Urbani razvoj'  WHERE slug = 'decije-igraliste';
+-- UPDATE initiatives SET category = 'Javni prevoz'   WHERE slug = 'rasveta-besni-fok-vrbovski';
+-- UPDATE initiatives SET category = 'Infrastruktura' WHERE slug = 'staza-sneg';
+-- UPDATE initiatives SET category = 'Javni prevoz'   WHERE slug = 'prevoz-102';
+-- UPDATE initiatives SET category = 'Urbani razvoj'  WHERE slug = 'stadion-vrbovski';

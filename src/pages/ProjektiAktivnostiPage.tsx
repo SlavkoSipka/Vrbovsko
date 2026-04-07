@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, type Project, type Initiative, type Activity } from '../lib/supabase'
+import { CategoryBadge } from '../components/CategoryBadge'
 
 interface CalendarEvent {
   kind: 'project' | 'initiative' | 'activity'
@@ -160,6 +161,7 @@ export default function ProjektiAktivnostiPage() {
                         {p.status === 'aktivan' ? 'U toku' : 'Planirano'}
                       </span>
                       {p.phase_total > 0 && <span className="ap-card-phase">Faza {p.phase_current} / {p.phase_total}</span>}
+                      <CategoryBadge category={p.category} />
                     </div>
                     <h3 className="ap-card-title">{p.title}</h3>
                     <p className="ap-card-desc">{p.description.split('\n').filter(l => l.trim())[0]?.slice(0, 150)}...</p>
@@ -247,6 +249,7 @@ export default function ProjektiAktivnostiPage() {
                         <p className="arh-entry-desc">
                           {i.description.split('\n').filter(l => l.trim()).slice(0, 2).join(' ').slice(0, 120)}...
                         </p>
+                        {i.category && <CategoryBadge category={i.category} />}
                         <div className="arh-entry-footer">
                           <span className="arh-entry-result">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -323,6 +326,7 @@ export default function ProjektiAktivnostiPage() {
                           {ini.status === 'aktivan' ? 'Aktivan' : 'Završen'}
                         </span>
                         <span className="zag-item-type">Inicijativa</span>
+                        {ini.category && <CategoryBadge category={ini.category} />}
                       </div>
                       <h3 className="zag-item-title">{ini.title}</h3>
                       <p className="zag-item-desc">

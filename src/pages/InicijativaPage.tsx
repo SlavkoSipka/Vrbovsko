@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase, type Initiative, type Project, type Activity, type ProjectPhase } from '../lib/supabase'
+import { CategoryBadge } from '../components/CategoryBadge'
 
 export default function InicijativaPage() {
   const { type, slug } = useParams<{ type: string; slug: string }>()
@@ -120,6 +121,7 @@ export default function InicijativaPage() {
               <span className={`pi-tag ${statusClass}`}>{statusLabel}</span>
               {item.date_text && <time className="inic-date">{item.date_text}</time>}
               <span className="inic-type">{isProject ? 'Projekat' : 'Inicijativa'}</span>
+              {item.category && <CategoryBadge category={item.category} />}
             </div>
 
             {/* 2. Opis */}

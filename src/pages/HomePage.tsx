@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useScrollAnimations } from '../hooks/useScrollAnimations'
 import StandardsSlideshow from '../components/StandardsSlideshow'
 import { supabase, type Project } from '../lib/supabase'
+import { CategoryBadge } from '../components/CategoryBadge'
 
 export default function HomePage() {
   useScrollAnimations()
@@ -203,7 +204,10 @@ export default function HomePage() {
                       )}
                     </div>
                     <div className="projekat-card-body">
-                      <span className="projekat-tag">{p.status === 'aktivan' ? 'U toku' : 'Planiran'}</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span className="projekat-tag">{p.status === 'aktivan' ? 'U toku' : 'Planiran'}</span>
+                        <CategoryBadge category={p.category} />
+                      </div>
                       <h3>{p.title}</h3>
                       <p>{p.description.split('\n').filter(l => l.trim())[0]?.slice(0, 120)}...</p>
                       <span className="projekat-link">Saznaj više →</span>

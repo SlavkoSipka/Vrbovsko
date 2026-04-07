@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, type Topic, type TopicItem, type TopicDocument, type Section, type ForumTopic, type ForumPost, type ForumReply, type SurveyPoll, type SurveyOption, type SurveyVote, type WallPost, type WallReply, type Project, type ProjectDocument, type Initiative, type InitiativeDocument, type Partner, type Fond, type Activity, type ActivityDocument, type ActivityGalleryImage, type ProjectPhase } from '../lib/supabase'
+import { supabase, PROJECT_CATEGORIES, type Topic, type TopicItem, type TopicDocument, type Section, type ForumTopic, type ForumPost, type ForumReply, type SurveyPoll, type SurveyOption, type SurveyVote, type WallPost, type WallReply, type Project, type ProjectDocument, type Initiative, type InitiativeDocument, type Partner, type Fond, type Activity, type ActivityDocument, type ActivityGalleryImage, type ProjectPhase } from '../lib/supabase'
 import { compressAndUpload } from '../lib/imageCompressor'
 
 /* ======================================= */
@@ -9,6 +9,7 @@ import { compressAndUpload } from '../lib/imageCompressor'
 
 export default function AdminPage() {
   const navigate = useNavigate()
+  const [authReady, setAuthReady] = useState(false)
   const [sections, setSections] = useState<Section[]>([])
   const [activeSection, setActiveSection] = useState<string>('')
   const [topics, setTopics] = useState<Topic[]>([])
@@ -26,7 +27,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) navigate('/login')
+      if (!data.session) {
+        navigate('/login', { replace: true })
+      } else {
+        setAuthReady(true)
+      }
     })
   }, [navigate])
 
@@ -72,6 +77,14 @@ export default function AdminPage() {
   function selectSection(id: string) {
     setActiveSection(id)
     setSidebarOpen(false)
+  }
+
+  if (!authReady) {
+    return (
+      <main className="adm-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <p style={{ color: '#999' }}>Provera autentifikacije...</p>
+      </main>
+    )
   }
 
   return (
@@ -668,6 +681,7 @@ function ProjectEditor({ project, onSave, onCancel }: {
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(project?.date_text ?? '')
   const [partner, setPartner] = useState(project?.partner ?? '')
+  const [category, setCategory] = useState(project?.category ?? '')
   const [goals, setGoals] = useState((project as unknown as Record<string, string>)?.goals ?? '')
   const [progressPct, setProgressPct] = useState(project?.progress_pct ?? 0)
   const [sortOrder, setSortOrder] = useState(project?.sort_order ?? 0)
@@ -756,7 +770,7 @@ function ProjectEditor({ project, onSave, onCancel }: {
     const finalSlug = slug || makeSlug(title)
     const payload: Record<string, unknown> = {
       title: title.trim(), slug: finalSlug, description, status,
-      cover_image: coverImage, date_text: dateText, partner, goals,
+      cover_image: coverImage, date_text: dateText, partner, category,
       progress_pct: progressPct, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }
@@ -840,6 +854,13 @@ function ProjectEditor({ project, onSave, onCancel }: {
               <div className="adm-field">
                 <label>Partner / Donator</label>
                 <input value={partner} onChange={e => setPartner(e.target.value)} />
+              </div>
+              <div className="adm-field">
+                <label>Tematska kategorija</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}>
+                  <option value="">— Bez kategorije —</option>
+                  {PROJECT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               <div className="adm-field-row">
                 <div className="adm-field">
@@ -990,6 +1011,7 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
   const [coverImage, setCoverImage] = useState(initiative?.cover_image ?? '')
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(initiative?.date_text ?? '')
+  const [category, setCategory] = useState(initiative?.category ?? '')
   const [goals, setGoals] = useState((initiative as unknown as Record<string, string>)?.goals ?? '')
   const [sortOrder, setSortOrder] = useState(initiative?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
@@ -1054,7 +1076,7 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
     const finalSlug = slug || makeSlug(title)
     const payload: Record<string, unknown> = {
       title: title.trim(), slug: finalSlug, description, status,
-      cover_image: coverImage, date_text: dateText, goals, sort_order: sortOrder,
+      cover_image: coverImage, date_text: dateText, category, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }
 
@@ -1135,6 +1157,13 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
                   <label>Redosled</label>
                   <input type="number" value={sortOrder} onChange={e => setSortOrder(Number(e.target.value))} style={{ maxWidth: 120 }} />
                 </div>
+              </div>
+              <div className="adm-field">
+                <label>Tematska kategorija</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}>
+                  <option value="">— Bez kategorije —</option>
+                  {PROJECT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               <div className="adm-field">
                 <label>Cover slika</label>

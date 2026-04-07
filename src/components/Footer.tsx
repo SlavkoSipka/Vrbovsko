@@ -3,25 +3,17 @@ import { Link } from 'react-router-dom'
 export default function Footer() {
   return (
     <footer className="footer" role="contentinfo">
-      <div className="footer-main">
-        <div className="footer-top">
+      <div className="footer-inner">
+        <div className="footer-grid">
           <div className="footer-brand">
             <img
               src="/logo.webp"
               alt="Vrbovski logotip"
               className="footer-logo"
             />
-            <p className="footer-tagline">Zajedno aktiviramo potencijal naselja kroz održivi razvoj</p>
-          </div>
-          <div className="footer-links-wrapper">
-            <nav className="footer-nav" aria-label="Footer navigacija">
-              <Link to="/">POČETNA</Link>
-              <Link to="/o-nama">O NAMA</Link>
-              <Link to="/odrzivi-razvoj">ODRŽIVI RAZVOJ</Link>
-              <Link to="/nasa-zajednica">NAŠA ZAJEDNICA</Link>
-              <Link to="/projekti-i-aktivnosti">PROJEKTI I AKTIVNOSTI</Link>
-              <Link to="/saradnja-partneri">SARADNJA I PARTNERI</Link>
-            </nav>
+            <p className="footer-tagline">
+              Zajedno aktiviramo potencijal naselja kroz održivi razvoj
+            </p>
             <div className="footer-social">
               <a
                 href="https://www.facebook.com/groups/948224840876795"
@@ -44,7 +36,17 @@ export default function Footer() {
               </span>
             </div>
           </div>
+
+          <nav className="footer-nav-col" aria-label="Footer navigacija">
+            <Link to="/">POČETNA</Link>
+            <Link to="/o-nama">O NAMA</Link>
+            <Link to="/odrzivi-razvoj">ODRŽIVI RAZVOJ</Link>
+            <Link to="/nasa-zajednica">NAŠA ZAJEDNICA</Link>
+            <Link to="/projekti-i-aktivnosti">PROJEKTI I AKTIVNOSTI</Link>
+            <Link to="/saradnja-partneri">SARADNJA I PARTNERI</Link>
+          </nav>
         </div>
+
         <div className="footer-eu-bar">
           <img src="/EUzaTebe_logo png.png" alt="EU za Tebe" className="footer-eu-logo" />
           <p>
@@ -53,13 +55,12 @@ export default function Footer() {
             odražava stavove Evropske unije.
           </p>
         </div>
+
         <div className="footer-bottom">
-          <div className="footer-bottom-content">
-            <p>&copy; 2026 Inicijativa za Održivi Razvoj Vrbovskog</p>
-            <div className="footer-legal">
-              <span>Powered by</span>
-              <a href="/aisajt" target="_blank" rel="noopener">AiSajt.com</a>
-            </div>
+          <p>&copy; 2026 Inicijativa za Održivi Razvoj Vrbovskog</p>
+          <div className="footer-legal">
+            <span>Powered by</span>
+            <Link to="/aisajt">AiSajt.com</Link>
           </div>
         </div>
       </div>

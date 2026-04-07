@@ -136,6 +136,21 @@ export interface WallReply {
   created_at: string
 }
 
+export type ProjectCategory =
+  | 'Urbani razvoj'
+  | 'Infrastruktura'
+  | 'Javni prevoz'
+  | 'Životna sredina'
+  | 'Glas zajednice'
+
+export const PROJECT_CATEGORIES: ProjectCategory[] = [
+  'Urbani razvoj',
+  'Infrastruktura',
+  'Javni prevoz',
+  'Životna sredina',
+  'Glas zajednice',
+]
+
 export interface Project {
   id: string
   title: string
@@ -145,6 +160,7 @@ export interface Project {
   cover_image: string
   date_text: string
   partner: string
+  category: string
   phase_current: number
   phase_total: number
   progress_pct: number
@@ -171,6 +187,7 @@ export interface Initiative {
   status: 'aktivan' | 'zavrsen'
   cover_image: string
   date_text: string
+  category: string
   sort_order: number
   visible: boolean
   created_at: string

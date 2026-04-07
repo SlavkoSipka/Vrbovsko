@@ -19,6 +19,7 @@ import AnketePollPage from './pages/AnketePollPage'
 import WallPage from './pages/WallPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
+import AiSajtPage from './pages/AiSajtPage'
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -55,6 +56,7 @@ function App() {
         <Route path="/projekti-i-aktivnosti/:type/:slug" element={<PublicLayout><InicijativaPage /></PublicLayout>} />
         <Route path="/projekti-i-aktivnosti/:type/:slug/aktivnost/:activitySlug" element={<PublicLayout><ActivityPage /></PublicLayout>} />
         <Route path="/saradnja-partneri" element={<PublicLayout><SaradnjaPartneriPage /></PublicLayout>} />
+        <Route path="/aisajt" element={<PublicLayout><AiSajtPage /></PublicLayout>} />
       </Routes>
     </BrowserRouter>
   )
