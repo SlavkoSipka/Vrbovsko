@@ -412,8 +412,8 @@ function PartnerEditor({ partner, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Novi Partner' : `Izmeni: ${partner!.name}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -472,8 +472,8 @@ function FondEditor({ fond, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Novi Fond' : `Izmeni: ${fond!.name}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -696,6 +696,8 @@ function ProjectEditor({ project, onSave, onCancel }: {
   const [category, setCategory] = useState(project?.category ?? '')
   const [goals, setGoals] = useState(parsed.goals)
   const [progressPct, setProgressPct] = useState(project?.progress_pct ?? 0)
+  const [phaseCurrent, setPhaseCurrent] = useState(project?.phase_current ?? 0)
+  const [phaseTotal, setPhaseTotal] = useState(project?.phase_total ?? 0)
   const [sortOrder, setSortOrder] = useState(project?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
 
@@ -784,7 +786,8 @@ function ProjectEditor({ project, onSave, onCancel }: {
     const payload: Record<string, unknown> = {
       title: title.trim(), slug: finalSlug, description: fullDescription, status,
       cover_image: coverImage, date_text: dateText, partner, category,
-      progress_pct: progressPct, sort_order: sortOrder,
+      progress_pct: progressPct, phase_current: phaseCurrent, phase_total: phaseTotal,
+      sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }
 
@@ -815,8 +818,8 @@ function ProjectEditor({ project, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor adm-editor--wide" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor adm-editor--wide">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Novi projekat' : `Izmeni: ${project?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -879,6 +882,14 @@ function ProjectEditor({ project, onSave, onCancel }: {
                 <div className="adm-field">
                   <label>Napredak (%)</label>
                   <input type="number" min={0} max={100} value={progressPct} onChange={e => setProgressPct(Number(e.target.value))} style={{ maxWidth: 100 }} />
+                </div>
+                <div className="adm-field">
+                  <label>Trenutna faza</label>
+                  <input type="number" min={0} value={phaseCurrent} onChange={e => setPhaseCurrent(Number(e.target.value))} style={{ maxWidth: 100 }} />
+                </div>
+                <div className="adm-field">
+                  <label>Ukupno faza</label>
+                  <input type="number" min={0} value={phaseTotal} onChange={e => setPhaseTotal(Number(e.target.value))} style={{ maxWidth: 100 }} />
                 </div>
                 <div className="adm-field">
                   <label>Redosled</label>
@@ -1122,8 +1133,8 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor adm-editor--wide" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor adm-editor--wide">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova inicijativa' : `Izmeni: ${initiative?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -1386,8 +1397,8 @@ function ActivityEditor({ activity, parentType, parentId, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={e => { e.stopPropagation(); onCancel() }} style={{ zIndex: 1100 }}>
-      <div className="adm-editor adm-editor--wide" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay" style={{ zIndex: 1100 }}>
+      <div className="adm-editor adm-editor--wide">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova aktivnost' : `Izmeni: ${activity?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -1546,8 +1557,8 @@ function PhaseEditor({ phase, projectId, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={e => { e.stopPropagation(); onCancel() }} style={{ zIndex: 1100 }}>
-      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay" style={{ zIndex: 1100 }}>
+      <div className="adm-editor">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova faza' : `Izmeni: ${phase?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -2031,8 +2042,8 @@ function PollEditor({ poll, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova anketa' : `Izmeni: ${poll?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -2507,8 +2518,8 @@ function ForumTopicEditor({ topic, onSave, onCancel }: {
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova forum tema' : `Izmeni: ${topic?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -2692,10 +2703,12 @@ function TopicEditor({
   const [iconSvg, setIconSvg] = useState(topic?.icon_svg ?? '')
   const [sortOrder, setSortOrder] = useState(topic?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'items' | 'docs'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'items' | 'docs' | 'images'>('info')
 
   const [items, setItems] = useState<TopicItem[]>([])
   const [docs, setDocs] = useState<TopicDocument[]>([])
+  const [topicImages, setTopicImages] = useState<{ id: string; topic_id: string; url: string; alt: string; sort_order: number }[]>([])
+  const [uploadingGallery, setUploadingGallery] = useState(false)
   const [itemsLoaded, setItemsLoaded] = useState(false)
 
   useEffect(() => {
@@ -2703,9 +2716,11 @@ function TopicEditor({
     Promise.all([
       supabase.from('topic_items').select('*').eq('topic_id', topic.id).order('sort_order'),
       supabase.from('topic_documents').select('*').eq('topic_id', topic.id).order('sort_order'),
-    ]).then(([itemsRes, docsRes]) => {
+      supabase.from('topic_images').select('*').eq('topic_id', topic.id).order('sort_order'),
+    ]).then(([itemsRes, docsRes, imgRes]) => {
       setItems(itemsRes.data ?? [])
       setDocs(docsRes.data ?? [])
+      setTopicImages(imgRes.data ?? [])
       setItemsLoaded(true)
     })
   }, [topic])
@@ -2764,6 +2779,23 @@ function TopicEditor({
     setDocs(prev => prev.filter((_, i) => i !== idx))
   }
 
+  async function handleGalleryUpload(files: FileList) {
+    setUploadingGallery(true)
+    const newImgs: typeof topicImages = []
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const url = await compressAndUpload(files[i])
+        newImgs.push({ id: `new-${Date.now()}-${i}`, topic_id: topic?.id ?? '', url, alt: '', sort_order: topicImages.length + newImgs.length + 1 })
+      } catch { alert(`Greška pri uploadu slike ${files[i].name}`) }
+    }
+    setTopicImages(prev => [...prev, ...newImgs])
+    setUploadingGallery(false)
+  }
+
+  function removeImage(idx: number) {
+    setTopicImages(prev => prev.filter((_, i) => i !== idx))
+  }
+
   async function handleSave() {
     if (!title.trim()) return
     setSaving(true)
@@ -2815,6 +2847,17 @@ function TopicEditor({
         }))
         await supabase.from('topic_documents').insert(docPayloads)
       }
+
+      await supabase.from('topic_images').delete().eq('topic_id', topicId)
+      if (topicImages.length > 0) {
+        const imgPayloads = topicImages.map((img, idx) => ({
+          topic_id: topicId!,
+          url: img.url,
+          alt: img.alt,
+          sort_order: idx + 1,
+        }))
+        await supabase.from('topic_images').insert(imgPayloads)
+      }
     }
 
     setSaving(false)
@@ -2822,8 +2865,8 @@ function TopicEditor({
   }
 
   return (
-    <div className="adm-editor-overlay" onClick={onCancel}>
-      <div className="adm-editor adm-editor--wide" onClick={e => e.stopPropagation()}>
+    <div className="adm-editor-overlay">
+      <div className="adm-editor adm-editor--wide">
         <div className="adm-editor-header">
           <h2>{isNew ? 'Nova tema' : `Izmeni: ${topic?.title}`}</h2>
           <button className="adm-editor-close" onClick={onCancel}>&times;</button>
@@ -2839,6 +2882,9 @@ function TopicEditor({
           </button>
           <button className={`adm-tab${activeTab === 'docs' ? ' active' : ''}`} onClick={() => setActiveTab('docs')}>
             Dokumenti ({docs.length})
+          </button>
+          <button className={`adm-tab${activeTab === 'images' ? ' active' : ''}`} onClick={() => setActiveTab('images')}>
+            Galerija ({topicImages.length})
           </button>
         </div>
 
@@ -2918,7 +2964,7 @@ function TopicEditor({
               ))}
               <button className="adm-btn adm-btn--add-item" onClick={addItem}>+ Dodaj karticu</button>
             </div>
-          ) : (
+          ) : activeTab === 'docs' ? (
             <div className="adm-items-list">
               <p className="adm-items-hint">Linkovi i dokumenti koji će se prikazivati na dnu stranice teme.</p>
               {docs.map((doc, idx) => (
@@ -2930,6 +2976,27 @@ function TopicEditor({
                 />
               ))}
               <button className="adm-btn adm-btn--add-item" onClick={addDoc}>+ Dodaj dokument</button>
+            </div>
+          ) : (
+            <div className="adm-items-list">
+              <p className="adm-items-hint">Slike koje se prikazuju na stranici teme (hero sekcija).</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+                {topicImages.map((img, idx) => (
+                  <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
+                    <img src={img.url} alt={img.alt} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+                    <button
+                      onClick={() => removeImage(idx)}
+                      style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', fontSize: 14, lineHeight: '24px', textAlign: 'center' }}
+                    >&times;</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '1rem' }}>
+                <label className="adm-doc-upload-btn" style={{ cursor: 'pointer' }}>
+                  {uploadingGallery ? 'Uploadujem...' : '+ Dodaj fotografije'}
+                  <input type="file" accept="image/*" multiple hidden onChange={e => e.target.files && handleGalleryUpload(e.target.files)} />
+                </label>
+              </div>
             </div>
           )}
         </div>

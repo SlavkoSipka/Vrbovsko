@@ -70,13 +70,13 @@ export default function TopicPage() {
             {topic.subtitle && <p className="tp-subtitle">{topic.subtitle}</p>}
             <h1 className="tp-title">{topic.title}</h1>
             {topic.body && <p className="tp-body">{topic.body}</p>}
-            <div className="tp-disclaimer tp-disclaimer--legal">
-              <h3 className="tp-disclaimer-heading">Odricanje od odgovornosti</h3>
-              <p className="tp-disclaimer-subheading">Napomena o resursima</p>
-              <p className="tp-disclaimer-body">
-                Linkovi ka dokumentima i stranicama institucija Evropske unije navedeni su isključivo u informativne svrhe radi lakšeg pristupa zvaničnim politikama i strategijama u oblasti zaštite životne sredine ili drugih oblasti kojima se Udruženje bavi u okviru realizacije svojih statutarnih ciljeva. Udruženje INICIJATIVA ZA ODRŽIVI RAZVOJ VRBOVSKOG ne polaže autorska prava na ove sadržaje niti snosi odgovornost za njihovu eventualnu izmenu ili dostupnost na eksternim serverima. Sva prava zadržavaju izvorni autori (Evropska unija / Evropska komisija).
-              </p>
-            </div>
+            {topic.disclaimer && (
+              <div className="tp-disclaimer tp-disclaimer--legal">
+                <h3 className="tp-disclaimer-heading">Odricanje od odgovornosti</h3>
+                <p className="tp-disclaimer-subheading">Napomena o resursima</p>
+                <p className="tp-disclaimer-body">{topic.disclaimer}</p>
+              </div>
+            )}
           </div>
 
           {images.length > 0 && (
