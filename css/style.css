@@ -12474,6 +12474,78 @@ a.res-card {
     margin-top: 2px;
 }
 
+/* Document cards */
+.inic-docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.inic-doc-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    background: #f8faf8;
+    border: 1px solid #e2e8e2;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.inic-doc-card:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 2px 12px rgba(34,139,34,0.08);
+    transform: translateY(-1px);
+}
+
+.inic-doc-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34,139,34,0.08);
+    border-radius: 8px;
+    color: var(--primary-green);
+}
+
+.inic-doc-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.inic-doc-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--primary-green-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.inic-doc-type {
+    font-size: 0.72rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.inic-doc-arrow {
+    flex-shrink: 0;
+    color: #bbb;
+    transition: color 0.2s;
+}
+
+.inic-doc-card:hover .inic-doc-arrow {
+    color: var(--accent-green);
+}
+
 /* =============================================
    PHASES GRID
    ============================================= */

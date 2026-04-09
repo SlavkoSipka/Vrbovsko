@@ -668,21 +668,33 @@ function AdminProjektiPanel() {
 /*  PROJECT EDITOR                         */
 /* ======================================= */
 
+function parseGoalsFromDesc(raw: string) {
+  const marker = '<!--GOALS-->'
+  const idx = raw.indexOf(marker)
+  if (idx === -1) return { desc: raw, goals: '' }
+  return { desc: raw.slice(0, idx).trimEnd(), goals: raw.slice(idx + marker.length).trim() }
+}
+function mergeGoalsIntoDesc(desc: string, goals: string) {
+  if (!goals.trim()) return desc
+  return desc.trimEnd() + '\n<!--GOALS-->\n' + goals.trim()
+}
+
 function ProjectEditor({ project, onSave, onCancel }: {
   project: Project | null; onSave: () => void; onCancel: () => void
 }) {
   const isNew = !project
   const [activeTab, setActiveTab] = useState<'info' | 'docs' | 'activities' | 'phases'>('info')
+  const parsed = parseGoalsFromDesc(project?.description ?? '')
   const [title, setTitle] = useState(project?.title ?? '')
   const [slug, setSlug] = useState(project?.slug ?? '')
-  const [description, setDescription] = useState(project?.description ?? '')
+  const [description, setDescription] = useState(parsed.desc)
   const [status, setStatus] = useState(project?.status ?? 'aktivan')
   const [coverImage, setCoverImage] = useState(project?.cover_image ?? '')
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(project?.date_text ?? '')
   const [partner, setPartner] = useState(project?.partner ?? '')
   const [category, setCategory] = useState(project?.category ?? '')
-  const [goals, setGoals] = useState((project as unknown as Record<string, string>)?.goals ?? '')
+  const [goals, setGoals] = useState(parsed.goals)
   const [progressPct, setProgressPct] = useState(project?.progress_pct ?? 0)
   const [sortOrder, setSortOrder] = useState(project?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
@@ -768,8 +780,9 @@ function ProjectEditor({ project, onSave, onCancel }: {
     if (!title.trim()) { alert('Unesite naslov projekta.'); return }
     setSaving(true)
     const finalSlug = slug || makeSlug(title)
+    const fullDescription = mergeGoalsIntoDesc(description, goals)
     const payload: Record<string, unknown> = {
-      title: title.trim(), slug: finalSlug, description, status,
+      title: title.trim(), slug: finalSlug, description: fullDescription, status,
       cover_image: coverImage, date_text: dateText, partner, category,
       progress_pct: progressPct, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
@@ -1004,15 +1017,16 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
 }) {
   const isNew = !initiative
   const [activeTab, setActiveTab] = useState<'info' | 'docs' | 'activities'>('info')
+  const parsedInit = parseGoalsFromDesc(initiative?.description ?? '')
   const [title, setTitle] = useState(initiative?.title ?? '')
   const [slug, setSlug] = useState(initiative?.slug ?? '')
-  const [description, setDescription] = useState(initiative?.description ?? '')
+  const [description, setDescription] = useState(parsedInit.desc)
   const [status, setStatus] = useState(initiative?.status ?? 'aktivan')
   const [coverImage, setCoverImage] = useState(initiative?.cover_image ?? '')
   const [uploadingCover, setUploadingCover] = useState(false)
   const [dateText, setDateText] = useState(initiative?.date_text ?? '')
   const [category, setCategory] = useState(initiative?.category ?? '')
-  const [goals, setGoals] = useState((initiative as unknown as Record<string, string>)?.goals ?? '')
+  const [goals, setGoals] = useState(parsedInit.goals)
   const [sortOrder, setSortOrder] = useState(initiative?.sort_order ?? 0)
   const [saving, setSaving] = useState(false)
 
@@ -1074,8 +1088,9 @@ function InitiativeEditor({ initiative, onSave, onCancel }: {
     if (!title.trim()) { alert('Unesite naslov inicijative.'); return }
     setSaving(true)
     const finalSlug = slug || makeSlug(title)
+    const fullDescription = mergeGoalsIntoDesc(description, goals)
     const payload: Record<string, unknown> = {
-      title: title.trim(), slug: finalSlug, description, status,
+      title: title.trim(), slug: finalSlug, description: fullDescription, status,
       cover_image: coverImage, date_text: dateText, category, sort_order: sortOrder,
       ...(isNew ? { visible: true as const } : {}),
     }

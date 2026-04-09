@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase, type Initiative, type Project, type Activity, type ProjectPhase } from '../lib/supabase'
+import { supabase, type Initiative, type Project, type Activity, type ProjectPhase, type ProjectDocument, type InitiativeDocument } from '../lib/supabase'
 import { CategoryBadge } from '../components/CategoryBadge'
+
+function parseGoalsFromDesc(raw: string) {
+  const marker = '<!--GOALS-->'
+  const idx = raw.indexOf(marker)
+  if (idx === -1) return { desc: raw, goals: '' }
+  return { desc: raw.slice(0, idx).trimEnd(), goals: raw.slice(idx + marker.length).trim() }
+}
 
 export default function InicijativaPage() {
   const { type, slug } = useParams<{ type: string; slug: string }>()
@@ -9,6 +16,7 @@ export default function InicijativaPage() {
   const [item, setItem] = useState<(Initiative | Project) & { goals?: string; detailed_description?: string } | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
   const [phases, setPhases] = useState<ProjectPhase[]>([])
+  const [docs, setDocs] = useState<(ProjectDocument | InitiativeDocument)[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -39,6 +47,11 @@ export default function InicijativaPage() {
         if (isProject) {
           const { data: phData } = await supabase.from('project_phases').select('*').eq('project_id', data.id).order('sort_order')
           setPhases(phData ?? [])
+          const { data: docData } = await supabase.from('project_documents').select('*').eq('project_id', data.id).order('sort_order')
+          setDocs(docData ?? [])
+        } else {
+          const { data: docData } = await supabase.from('initiative_documents').select('*').eq('initiative_id', data.id).order('sort_order')
+          setDocs(docData ?? [])
         }
       }
 
@@ -85,7 +98,9 @@ export default function InicijativaPage() {
   const phaseStatusLabel = (s: string) => s === 'planirano' ? 'Planirano' : s === 'u_toku' ? 'U toku' : 'Završeno'
   const phaseStatusClass = (s: string) => s === 'planirano' ? 'phase-status--planned' : s === 'u_toku' ? 'phase-status--active' : 'phase-status--done'
 
-  const goalsArr = item.goals ? item.goals.split('\n').filter(g => g.trim()) : []
+  const parsed = parseGoalsFromDesc(item.description)
+  const cleanDesc = parsed.desc
+  const goalsArr = parsed.goals ? parsed.goals.split('\n').filter(g => g.trim()) : []
 
   return (
     <>
@@ -127,7 +142,7 @@ export default function InicijativaPage() {
             {/* 2. Opis */}
             <div className="inic-content-wrap">
               <div className="inic-body">
-                {item.description.split('\n').map((line, i) => {
+                {cleanDesc.split('\n').map((line, i) => {
                   const trimmed = line.trim()
                   if (!trimmed) return <br key={i} />
                   if (i === 0 || (trimmed.length < 80 && !trimmed.endsWith('.'))) {
@@ -194,6 +209,45 @@ export default function InicijativaPage() {
                   <div className="inic-progress-fill" style={{ width: `${item.progress_pct}%` }} />
                 </div>
               </div>
+            )}
+
+            {/* Dokumenti */}
+            {docs.length > 0 && (
+              <section className="inic-section">
+                <h2 className="inic-section-title">Dokumenti</h2>
+                <div className="inic-docs-grid">
+                  {docs.map(doc => {
+                    const isPdf = doc.file_type === 'pdf'
+                    const isImage = doc.file_type === 'image' || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.url)
+                    return (
+                      <a key={doc.id} href={doc.url} target="_blank" rel="noopener noreferrer" className="inic-doc-card">
+                        <div className="inic-doc-icon">
+                          {isPdf ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="28" height="28">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : isImage ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="28" height="28">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="28" height="28">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="inic-doc-info">
+                          <span className="inic-doc-title">{doc.title}</span>
+                          <span className="inic-doc-type">{isPdf ? 'PDF dokument' : isImage ? 'Slika' : 'Link'}</span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="inic-doc-arrow" width="18" height="18">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )
+                  })}
+                </div>
+              </section>
             )}
 
             {/* 4. Faze projekta (samo za projekte) */}
