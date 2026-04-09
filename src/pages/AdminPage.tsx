@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, PROJECT_CATEGORIES, type Topic, type TopicItem, type TopicDocument, type Section, type ForumTopic, type ForumPost, type ForumReply, type SurveyPoll, type SurveyOption, type SurveyVote, type WallPost, type WallReply, type Project, type ProjectDocument, type Initiative, type InitiativeDocument, type Partner, type Fond, type Activity, type ActivityDocument, type ActivityGalleryImage, type ProjectPhase } from '../lib/supabase'
-import { compressAndUpload } from '../lib/imageCompressor'
+import { compressAndUpload, uploadFile } from '../lib/imageCompressor'
 
 /* ======================================= */
 /*  ADMIN PAGE                             */
@@ -1324,14 +1324,13 @@ function ActivityEditor({ activity, parentType, parentId, onSave, onCancel }: {
   }
 
   async function handleDocFileUpload(idx: number, file: File) {
-    const ext = file.name.split('.').pop()
-    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
-    if (error) { alert('Greška pri uploadu fajla: ' + error.message); return }
-    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
-    const isPdf = ext?.toLowerCase() === 'pdf'
-    const updatedDoc = { ...docs[idx], url: urlData.publicUrl, file_type: isPdf ? 'pdf' : 'file', title: docs[idx].title || file.name }
-    setDocs(prev => prev.map((d, i) => i === idx ? updatedDoc : d))
+    try {
+      const url = await uploadFile(file)
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      const isPdf = ext === 'pdf'
+      const updatedDoc = { ...docs[idx], url, file_type: isPdf ? 'pdf' : 'file', title: docs[idx].title || file.name }
+      setDocs(prev => prev.map((d, i) => i === idx ? updatedDoc : d))
+    } catch (err) { alert('Greška pri uploadu fajla: ' + (err as Error).message) }
   }
 
   async function handleGalleryUpload(files: FileList) {
@@ -2577,12 +2576,10 @@ function ItemRow({
 
   async function handleFileUpload(file: File) {
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
-    if (error) { alert('Greška pri uploadu: ' + error.message); setUploading(false); return }
-    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
-    onChange({ ...item, link: urlData.publicUrl, title: item.title || file.name })
+    try {
+      const url = await uploadFile(file)
+      onChange({ ...item, link: url, title: item.title || file.name })
+    } catch (err) { alert('Greška pri uploadu: ' + (err as Error).message) }
     setUploading(false)
   }
 
@@ -2633,13 +2630,12 @@ function DocRow({
 
   async function handleFileUpload(file: File) {
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
-    if (error) { alert('Greška pri uploadu fajla: ' + error.message); setUploading(false); return }
-    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
-    const isPdf = ext?.toLowerCase() === 'pdf'
-    onChange({ ...doc, url: urlData.publicUrl, file_type: isPdf ? 'pdf' : 'file', title: doc.title || file.name })
+    try {
+      const url = await uploadFile(file)
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      const isPdf = ext === 'pdf'
+      onChange({ ...doc, url, file_type: isPdf ? 'pdf' : 'file', title: doc.title || file.name })
+    } catch (err) { alert('Greška pri uploadu fajla: ' + (err as Error).message) }
     setUploading(false)
   }
 
@@ -2732,12 +2728,10 @@ function TopicEditor({
   }
 
   async function handleImageUpload(file: File) {
-    const ext = file.name.split('.').pop()
-    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
-    if (error) { alert('Greška pri uploadu slike: ' + error.message); return }
-    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
-    setCoverImage(urlData.publicUrl)
+    try {
+      const url = await compressAndUpload(file)
+      setCoverImage(url)
+    } catch (err) { alert('Greška pri uploadu slike: ' + (err as Error).message) }
   }
 
   function addItem() {

@@ -51,3 +51,18 @@ export async function compressAndUpload(file: File): Promise<string> {
   const { data } = supabase.storage.from('uploads').getPublicUrl(path)
   return data.publicUrl
 }
+
+export async function uploadFile(file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
+  const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+  const { error } = await supabase.storage.from('uploads').upload(path, file, {
+    contentType: file.type || 'application/octet-stream',
+    upsert: true,
+  })
+
+  if (error) throw new Error(`Upload failed: ${error.message}`)
+
+  const { data } = supabase.storage.from('uploads').getPublicUrl(path)
+  return data.publicUrl
+}
