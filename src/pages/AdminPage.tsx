@@ -2547,6 +2547,19 @@ function ItemRow({
   onChange: (updated: TopicItem) => void
   onDelete: () => void
 }) {
+  const [uploading, setUploading] = useState(false)
+
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `topics/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file)
+    if (error) { alert('Greška pri uploadu: ' + error.message); setUploading(false); return }
+    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
+    onChange({ ...item, link: urlData.publicUrl, title: item.title || file.name })
+    setUploading(false)
+  }
+
   return (
     <div className="adm-item-row">
       <div className="adm-item-fields">
@@ -2563,8 +2576,14 @@ function ItemRow({
           <input value={item.description} onChange={e => onChange({ ...item, description: e.target.value })} />
         </div>
         <div className="adm-item-field adm-item-field--link">
-          <label>Link</label>
+          <label>Link / Fajl</label>
           <input value={item.link} onChange={e => onChange({ ...item, link: e.target.value })} placeholder="https://..." />
+          <div className="adm-doc-upload" style={{ marginTop: 4 }}>
+            <label className="adm-doc-upload-btn" style={{ cursor: 'pointer' }}>
+              {uploading ? 'Upload...' : '📎 Upload PDF / sliku'}
+              <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.svg" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} hidden />
+            </label>
+          </div>
         </div>
       </div>
       <button className="adm-item-delete" onClick={onDelete} title="Obriši stavku">&times;</button>
