@@ -1299,9 +1299,9 @@ function ActivityEditor({ activity, parentType, parentId, onSave, onCancel }: {
 
   async function handleDocFileUpload(idx: number, file: File) {
     const ext = file.name.split('.').pop()
-    const path = `documents/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file)
-    if (error) { alert('Greška pri uploadu fajla'); return }
+    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
+    if (error) { alert('Greška pri uploadu fajla: ' + error.message); return }
     const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
     const isPdf = ext?.toLowerCase() === 'pdf'
     const updatedDoc = { ...docs[idx], url: urlData.publicUrl, file_type: isPdf ? 'pdf' : 'file', title: docs[idx].title || file.name }
@@ -2552,8 +2552,8 @@ function ItemRow({
   async function handleFileUpload(file: File) {
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const path = `topics/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file)
+    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
     if (error) { alert('Greška pri uploadu: ' + error.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
     onChange({ ...item, link: urlData.publicUrl, title: item.title || file.name })
@@ -2608,9 +2608,9 @@ function DocRow({
   async function handleFileUpload(file: File) {
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const path = `documents/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file)
-    if (error) { alert('Greška pri uploadu fajla'); setUploading(false); return }
+    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
+    if (error) { alert('Greška pri uploadu fajla: ' + error.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
     const isPdf = ext?.toLowerCase() === 'pdf'
     onChange({ ...doc, url: urlData.publicUrl, file_type: isPdf ? 'pdf' : 'file', title: doc.title || file.name })
@@ -2703,9 +2703,9 @@ function TopicEditor({
 
   async function handleImageUpload(file: File) {
     const ext = file.name.split('.').pop()
-    const path = `topics/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('uploads').upload(path, file)
-    if (error) { alert('Greška pri uploadu slike'); return }
+    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
+    if (error) { alert('Greška pri uploadu slike: ' + error.message); return }
     const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
     setCoverImage(urlData.publicUrl)
   }
