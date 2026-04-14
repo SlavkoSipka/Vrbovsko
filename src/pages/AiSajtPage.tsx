@@ -119,8 +119,8 @@ export default function AiSajtPage() {
               <div className="aisajt-cta-block">
                 <p className="aisajt-cta-text">
                   Ako imate ideju za sajt — ili samo niste sigurni odakle da počnete —
-                  javite nam se. Ne ujedamo. Konsultacija je besplatna i bez obaveze,
-                  a mi ćemo vam reći iskreno šta ima smisla, a šta ne.
+                  javite nam se. Konsultacija je besplatna i bez obaveze, a dobićete iskren
+                  savet šta ima smisla, a šta ne.
                 </p>
                 <a
                   href="https://aisajt.com/"

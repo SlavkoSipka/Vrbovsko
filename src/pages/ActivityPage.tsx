@@ -90,7 +90,7 @@ export default function ActivityPage() {
 
   return (
     <>
-      <header className="hero hero-page" role="banner">
+      <header className="hero hero-page hero-page--full-photo" role="banner">
         <div className="hero-image">
           <img src={activity.cover_image || '/mapa-vrbovsko.png'} alt={activity.title} loading="eager" />
           <div className="hero-overlay" aria-hidden="true" />

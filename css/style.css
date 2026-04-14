@@ -4455,9 +4455,31 @@ button.res-card {
    PAGE HERO (inner pages)
    =========================== */
 
+/* Ista logika kao .hero na početnoj: pun ekran po visini — izbegava „panoramski“ okvir
+   koji sa object-fit: cover seče veći deo fotografije na širokim monitorima */
 .hero-page {
-    height: clamp(400px, 56.25vw, 75vh);
-    min-height: 400px;
+    height: 100vh;
+    min-height: 600px;
+}
+
+/* Projekti / aktivnosti / inicijative sa uploadovanom fotografijom: prikaži ceo kadar
+   (dokumentarnost), sa tamnom pozadinom u prazninama umesto agresivnog crop-a */
+.hero-page--full-photo .hero-image {
+    background: linear-gradient(180deg, #1a2520 0%, #0f1614 100%);
+}
+
+.hero-page--full-photo .hero-image img {
+    object-fit: contain;
+    object-position: center center;
+}
+
+.hero-page--full-photo .hero-overlay {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.38) 0%,
+        rgba(0, 0, 0, 0.22) 45%,
+        rgba(0, 0, 0, 0.72) 100%
+    );
 }
 
 .hero-page .hero-content .container {
@@ -12744,8 +12766,12 @@ a.res-card {
 
 .tl-card-img {
     width: 100%;
-    height: 140px;
-    object-fit: cover;
+    max-height: 220px;
+    min-height: 120px;
+    height: auto;
+    object-fit: contain;
+    object-position: center center;
+    background: #eef5f0;
     border-radius: 9px;
     margin-bottom: 0.75rem;
     flex-shrink: 0;

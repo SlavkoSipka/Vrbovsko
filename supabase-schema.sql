@@ -215,7 +215,7 @@ BEGIN
     'Standardi i modeli EU za zelenilo, javne prostore, otpad i klimatsku otpornost',
     'Evropski standardi za lokalne zajednice',
     'Evropska unija razvija vodiče i smernice koje pomažu lokalnim zajednicama da planiraju i sprovode projekte u skladu sa najvišim standardima održivosti.',
-    'Ovaj sajt objavljen je uz finansijsku pomoć Evropske unije. Za njegovu sadržinu odgovorno je udruženje „INICIJATIVA ZA ODRŽIVI RAZVOJ VRBOVSKOG" i ona nužno ne odražava stavove Evropske unije.',
+    'Ovaj sajt izrađen je uz finansijsku pomoć Evropske unije. Za njegovu sadržinu odgovorno je udruženje „INICIJATIVA ZA ODRŽIVI RAZVOJ VRBOVSKOG" i ona nužno ne odražava stavove Evropske unije.',
     '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>',
     5
   ) RETURNING id INTO t_id;

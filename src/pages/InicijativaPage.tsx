@@ -104,7 +104,7 @@ export default function InicijativaPage() {
 
   return (
     <>
-      <header className="hero hero-page" role="banner">
+      <header className={`hero hero-page${item.cover_image ? ' hero-page--full-photo' : ''}`} role="banner">
         <div className="hero-image">
           {item.cover_image ? (
             <img src={item.cover_image} alt={item.title} loading="eager" />

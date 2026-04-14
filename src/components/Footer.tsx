@@ -50,7 +50,7 @@ export default function Footer() {
         <div className="footer-eu-bar">
           <img src="/EUzaTebe_logo png.png" alt="EU za Tebe" className="footer-eu-logo" />
           <p>
-            Ovaj sajt objavljen je uz finansijsku pomoć Evropske unije. Za njegovu sadržinu
+            Ovaj sajt izrađen je uz finansijsku pomoć Evropske unije. Za njegovu sadržinu
             odgovorno je udruženje „INICIJATIVA ZA ODRŽIVI RAZVOJ VRBOVSKOG" i ona nužno ne
             odražava stavove Evropske unije.
           </p>
