@@ -374,6 +374,51 @@ export default function ProjektiAktivnostiPage() {
 
 const MONTH_NAMES = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar']
 
+const SR_MONTHS: Record<string, number> = {
+  'januar': 0, 'jan': 0,
+  'februar': 1, 'feb': 1,
+  'mart': 2, 'mar': 2,
+  'april': 3, 'apr': 3,
+  'maj': 4,
+  'jun': 5, 'juni': 5,
+  'jul': 6, 'juli': 6,
+  'avgust': 7, 'avg': 7,
+  'septembar': 8, 'sep': 8, 'sept': 8,
+  'oktobar': 9, 'okt': 9,
+  'novembar': 10, 'nov': 10,
+  'decembar': 11, 'dec': 11,
+}
+
+// Parses dates like "11. 5. 2026", "11.5.2026", "11. maj 2026", "2026-05-11"
+function parseSerbianDate(text: string | null | undefined): { day: number; month: number; year: number } | null {
+  if (!text) return null
+  const s = text.trim().toLowerCase()
+  if (!s) return null
+
+  let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (m) {
+    const year = parseInt(m[1], 10), month = parseInt(m[2], 10) - 1, day = parseInt(m[3], 10)
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) return { day, month, year }
+  }
+
+  m = s.match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/)
+  if (m) {
+    const day = parseInt(m[1], 10), month = parseInt(m[2], 10) - 1, year = parseInt(m[3], 10)
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) return { day, month, year }
+  }
+
+  m = s.match(/(\d{1,2})\.\s*([a-zščćžđ]+)\.?\s*(\d{4})/i)
+  if (m) {
+    const day = parseInt(m[1], 10)
+    const monthName = m[2].toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
+    const month = SR_MONTHS[monthName]
+    const year = parseInt(m[3], 10)
+    if (month !== undefined && day >= 1 && day <= 31) return { day, month, year }
+  }
+
+  return null
+}
+
 interface DayEvent {
   title: string
   link: string
@@ -398,21 +443,49 @@ function CalendarGrid({ projects, initiatives, activities }: { projects: Project
 
   const dayEventsMap = new Map<number, DayEvent[]>()
 
+  function pushEvent(day: number, ev: DayEvent) {
+    const arr = dayEventsMap.get(day) ?? []
+    arr.push(ev)
+    dayEventsMap.set(day, arr)
+  }
+
+  projects.forEach(p => {
+    const parsed = parseSerbianDate(p.date_text)
+    if (!parsed || parsed.year !== year || parsed.month !== month) return
+    pushEvent(parsed.day, {
+      title: p.title,
+      link: `/projekti-i-aktivnosti/projekat/${p.slug}`,
+      kind: 'project',
+      status: p.status === 'planiran' ? 'Planirano' : p.status === 'aktivan' ? 'U toku' : 'Završeno',
+      parentLabel: 'Projekat',
+    })
+  })
+
+  initiatives.forEach(i => {
+    const parsed = parseSerbianDate(i.date_text)
+    if (!parsed || parsed.year !== year || parsed.month !== month) return
+    pushEvent(parsed.day, {
+      title: i.title,
+      link: `/projekti-i-aktivnosti/inicijativa/${i.slug}`,
+      kind: 'initiative',
+      status: i.status === 'aktivan' ? 'U toku' : 'Završeno',
+      parentLabel: 'Inicijativa',
+    })
+  })
+
   activities.forEach(act => {
     const d = new Date(act.activity_date)
     if (d.getFullYear() === year && d.getMonth() === month) {
       const day = d.getDate()
       const parent = parentMap.get(act.parent_id)
       if (!parent) return
-      const arr = dayEventsMap.get(day) ?? []
-      arr.push({
+      pushEvent(day, {
         title: act.title,
         link: `/projekti-i-aktivnosti/${parent.type}/${parent.slug}/aktivnost/${act.slug}`,
         kind: 'activity',
         status: act.status === 'planirano' ? 'Planirano' : act.status === 'u_toku' ? 'U toku' : 'Završeno',
         parentLabel: parent.title,
       })
-      dayEventsMap.set(day, arr)
     }
   })
 
